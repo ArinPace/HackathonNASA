@@ -1208,3 +1208,397 @@ footer button {
   color: #24351c;
   border-color: #b4e781;
 }
+/* Flight school and active operations */
+.coach {
+  border: 1px solid #8fbf68;
+  background: linear-gradient(135deg, #213122, #132324);
+  padding: 20px;
+  margin-bottom: 24px;
+  border-radius: 6px;
+  box-shadow: 0 6px 35px #0002;
+}
+.coach-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #c4f38c;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+}
+.coach-top button {
+  background: none;
+  border: 0;
+  color: #b8d49f;
+  padding: 3px;
+}
+.coach h3 {
+  font:
+    500 20px/1.3 "Space Grotesk",
+    sans-serif;
+  margin: 16px 0 9px;
+  color: #eef7e8;
+}
+.coach p {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #a9bfae;
+  margin: 0;
+}
+.coach-task {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 15px 0;
+  font-size: 11px;
+  color: #d1edbd;
+}
+.coach-progress {
+  display: flex;
+  gap: 5px;
+  margin-top: 14px;
+}
+.coach-progress i {
+  height: 3px;
+  background: #3d5041;
+  flex: 1;
+}
+.coach-progress .done {
+  background: var(--green);
+}
+.coach .primary {
+  padding: 10px 13px;
+}
+.coach .primary:disabled {
+  opacity: 0.4;
+}
+.flight-map {
+  border: 1px solid #2a403c;
+  background: radial-gradient(ellipse at 35% 50%, #182b2c, #0a141b);
+  border-radius: 6px;
+  margin: 0 0 18px;
+  overflow: hidden;
+}
+.flight-map svg {
+  width: 100%;
+  max-height: 232px;
+  display: block;
+}
+.map-caption,
+.map-legend {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 15px;
+  color: #93b7ae;
+  font-size: 8px;
+  letter-spacing: 1px;
+}
+.map-legend {
+  border-top: 1px solid #253936;
+  font-size: 9px;
+  letter-spacing: 0;
+}
+.map-legend i {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  background: var(--green);
+  margin-right: 5px;
+  border-radius: 50%;
+}
+.link-flow {
+  animation: link-flow 1s linear infinite;
+}
+@keyframes link-flow {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+.flight-director {
+  display: flex;
+  gap: 9px;
+  flex-direction: column;
+  background: #1b2824;
+  border-left: 3px solid var(--green);
+  padding: 13px 15px;
+}
+.flight-director > span {
+  font-size: 8px;
+  letter-spacing: 1.4px;
+  color: #89a48e;
+}
+.flight-director > b {
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #d2e1c9;
+}
+.coast-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+}
+.coast-actions button {
+  background: #233c31;
+  border: 1px solid #577d50;
+  border-radius: 3px;
+  padding: 10px 12px;
+  color: #d0efb7;
+  font-size: 11px;
+}
+.coast-actions span {
+  font-size: 8px;
+  color: #6f897b;
+}
+.achievement {
+  position: fixed;
+  top: 110px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 17px;
+  align-items: center;
+  background: #dbf7b8;
+  color: #20341d;
+  z-index: 35;
+  padding: 18px 25px;
+  border-radius: 5px;
+  box-shadow: 0 10px 80px #0007;
+  pointer-events: none;
+  animation: reward-in 0.3s ease-out;
+  max-width: 90vw;
+}
+.achievement > span {
+  font-size: 32px;
+}
+.achievement small {
+  font-size: 8px;
+  letter-spacing: 2px;
+  display: block;
+  margin-bottom: 7px;
+}
+.achievement b {
+  font:
+    500 15px "Space Grotesk",
+    sans-serif;
+}
+.mission-medals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 15px 0;
+}
+.mission-medals span {
+  padding: 8px 10px;
+  border: 1px solid #4a6340;
+  border-radius: 3px;
+  background: #20351e;
+  color: #c6e4af;
+  font-size: 9px;
+  letter-spacing: 0.7px;
+}
+.stage-flight .scene-heading {
+  max-width: 100%;
+  padding-bottom: 0;
+}
+.stage-flight .scene-heading h1 {
+  font-size: 38px;
+  line-height: 1;
+  letter-spacing: -1.5px;
+  margin-top: 16px;
+}
+.stage-flight .scene-heading h1 br {
+  display: none;
+}
+.stage-flight .scene-heading h1 em {
+  margin-left: 9px;
+}
+.stage-flight .scene-heading p {
+  max-width: 360px;
+}
+.stage-flight .workspace {
+  position: sticky;
+  top: 0;
+  height: 900px;
+  max-height: 100vh;
+}
+.stage-flight .commands button {
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.stage-flight .commands button:active {
+  background: #405a2b;
+  transform: translateY(1px);
+}
+.tutorial-launch {
+  border: 1px solid #536b46;
+  border-radius: 3px;
+  padding: 7px 10px;
+  color: var(--green);
+}
+@keyframes reward-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+@media (max-width: 760px) {
+  .stage-flight .workspace {
+    position: relative;
+    height: 300px;
+    min-height: 300px;
+    max-height: none;
+  }
+  .stage-flight .scene-heading {
+    padding: 18px 24px;
+    pointer-events: none;
+  }
+  .stage-flight .scene-heading h1 {
+    font-size: 25px;
+  }
+  .stage-flight .scene-heading p,
+  .stage-flight .objective,
+  .stage-flight .scene-footer {
+    display: none;
+  }
+  .stage-flight .scene {
+    inset: 60px 0 20px;
+  }
+  .stage-flight .scene-label {
+    bottom: 15px;
+    left: 24px;
+  }
+  .stage-flight .scene-heading .eyebrow {
+    font-size: 8px;
+  }
+  .stage-flight aside {
+    padding-top: 20px;
+  }
+  .coach {
+    padding: 16px;
+  }
+  .coach h3 {
+    font-size: 18px;
+  }
+  .header-actions .tutorial-launch {
+    font-size: 9px;
+    white-space: nowrap;
+  }
+  .header-actions .tutorial-launch svg {
+    display: none;
+  }
+  .achievement {
+    top: 85px;
+    width: 90%;
+    padding: 13px 18px;
+  }
+  .flight-map svg {
+    max-height: 190px;
+  }
+  .flight-map {
+    margin-bottom: 14px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .achievement,
+  .link-flow {
+    animation: none;
+  }
+}
+.priority-data {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid #34514a;
+  background: #142922;
+  color: #bbdca6;
+  padding: 12px;
+  font-size: 10px;
+  margin-top: 13px;
+  text-align: left;
+  gap: 10px;
+}
+.priority-data small {
+  font-size: 8px;
+  color: #7b9a85;
+}
+.priority-data:hover {
+  border-color: #91b66f;
+  background: #213d2b;
+}
+@media (min-width: 761px) {
+  .stage-flight aside {
+    padding-top: 25px;
+  }
+  .stage-flight .panel-title h2 {
+    margin: 9px 0 18px;
+  }
+  .stage-flight .flight-map svg {
+    max-height: 150px;
+  }
+  .stage-flight .map-caption,
+  .stage-flight .map-legend {
+    padding: 9px 12px;
+  }
+  .stage-flight .telemetry {
+    margin: 16px 0;
+  }
+  .stage-flight .link-status {
+    margin: 16px 0;
+  }
+  .stage-flight .commands button {
+    padding: 13px 10px;
+  }
+  .stage-flight .event-log {
+    max-height: 95px;
+  }
+  .stage-flight .science-count {
+    padding: 14px 0;
+  }
+  .stage-flight .transport {
+    margin: 13px 0;
+  }
+  .stage-flight .survey-grid {
+    margin: 12px 0;
+  }
+  .stage-flight .survey-grid span {
+    aspect-ratio: auto;
+    height: 25px;
+  }
+  .stage-flight .flight-status {
+    padding: 12px 0;
+  }
+  .stage-flight .scene-heading h1 {
+    font-size: 32px;
+  }
+}
+.app:not([data-tutorial=""]) .flight-map {
+  display: none;
+}
+.app:not([data-tutorial=""]).stage-flight .panel-title {
+  display: none;
+}
+.app:not([data-tutorial=""]) .coach {
+  margin-bottom: 16px;
+}
+.app:not([data-tutorial=""]) .coach h3 {
+  font-size: 18px;
+}
+.app:not([data-tutorial=""]) .coach p {
+  font-size: 11px;
+}
+.app:not([data-tutorial=""]) .flight-director {
+  padding: 10px 12px;
+}
+.score-explainer {
+  color: #8fa394;
+  font-size: 10px;
+  line-height: 1.7;
+  margin: 15px 0;
+}

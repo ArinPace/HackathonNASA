@@ -87,12 +87,23 @@ export function Scene({
     const batteryBox = box(0.55, 0.25, 0.65, 0x3f5143, 0.48, -0.55, 0.1);
     const recorderBox = box(0.35, 0.2, 0.55, 0x83959b, -0.48, -0.5, 0.1);
     const panels: THREE.Mesh[] = [];
+    const grids: THREE.Mesh[][] = [];
     for (const side of [-1, 1]) {
       box(1, 0.07, 0.1, 0x8d969b, side * 1.05);
       for (let j = 0; j < 3; j++) {
         panels.push(box(0.85, 0.055, 1.75, 0x13365c, side * (1.7 + j * 0.88)));
+        const grid: THREE.Mesh[] = [];
         for (let k = 0; k < 5; k++)
-          box(0.008, 0.06, 1.75, 0x6595b3, side * (1.32 + j * 0.88 + k * 0.17));
+          grid.push(
+            box(
+              0.008,
+              0.06,
+              1.75,
+              0x6595b3,
+              side * (1.32 + j * 0.88 + k * 0.17),
+            ),
+          );
+        grids.push(grid);
       }
       box(0.07, 0.5, 0.07, 0xd9d8c9, side * 0.5, 0.8);
     }
@@ -185,6 +196,22 @@ export function Scene({
     const starsM = new THREE.PointsMaterial({ size: 0.035, color: 0xbcd0d7 });
     mats.push(starsM);
     scene.add(new THREE.Points(starsG, starsM));
+    const beamG = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(1, 0.5, 0),
+      new THREE.Vector3(-3, -2, -6),
+    ]);
+    const beamM = new THREE.LineDashedMaterial({
+      color: 0xc4f38c,
+      dashSize: 0.16,
+      gapSize: 0.12,
+      transparent: true,
+      opacity: 0.7,
+    });
+    const beam = new THREE.Line(beamG, beamM);
+    beam.computeLineDistances();
+    scene.add(beam);
+    geometries.push(beamG);
+    mats.push(beamM);
     let raf = 0,
       drag = false,
       lastX = 0,
@@ -204,6 +231,7 @@ export function Scene({
     el.addEventListener("pointerdown", down);
     el.addEventListener("pointermove", move);
     el.addEventListener("pointerup", up);
+    el.addEventListener("pointercancel", up);
     const resize = () => {
       const w = el.clientWidth,
         h = el.clientHeight;
@@ -236,14 +264,29 @@ export function Scene({
       batteryBox.scale.y = l.design.battery === "large" ? 1.6 : 1;
       recorderBox.scale.x = l.design.storage === "large" ? 1.7 : 1;
       dish.scale.setScalar(l.design.radio === "strong" ? 1 : 0.45);
-      panels.forEach(
-        (p, i) => (p.visible = l.design.solar === "large" || i % 3 < 2),
-      );
+      panels.forEach((p, i) => {
+        p.visible = l.design.solar === "large" || i % 3 < 2;
+        grids[i].forEach((g) => (g.visible = p.visible));
+      });
       if (l.flight) {
         const e = env(l.design, l.state.t);
+        beam.visible =
+          l.state.slew <= 0 &&
+          ((l.state.mode === "observe" && e.target) ||
+            (l.state.mode === "downlink" && e.contact));
+        beamM.color.set(l.state.mode === "observe" ? 0x66d9ef : 0xc4f38c);
+        beamM.opacity = 0.45 + Math.sin(t * 15) * 0.25;
+        lensM.emissive.set(
+          l.state.mode === "observe" && e.target ? 0x166a70 : 0x000000,
+        );
+        craft.position.y = 0.5 + (l.reduced ? 0 : Math.sin(e.angle) * 0.15);
         moon.rotation.y = e.angle * 0.04;
         sun.intensity = e.eclipse ? 0.5 : 4;
-      } else sun.intensity = 4;
+      } else {
+        sun.intensity = 4;
+        beam.visible = false;
+        lensM.emissive.set(0x000000);
+      }
       renderer.render(scene, camera);
     }
     frame();
@@ -253,6 +296,7 @@ export function Scene({
       el.removeEventListener("pointerdown", down);
       el.removeEventListener("pointermove", move);
       el.removeEventListener("pointerup", up);
+      el.removeEventListener("pointercancel", up);
       geometries.forEach((g) => g.dispose());
       mats.forEach((m) => m.dispose());
       texture?.dispose();

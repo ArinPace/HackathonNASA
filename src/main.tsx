@@ -34,11 +34,14 @@ import {
   science,
   queued,
   simulate,
+  prioritizeDiscoveries,
   type Design,
   type State,
   type Mode,
 } from "./sim/mission";
 import "./style.css";
+import { Tutorial } from "./Tutorial";
+import { FlightMap, nextWindow } from "./FlightMap";
 const fmt = (n: number) =>
   n.toLocaleString(undefined, { maximumFractionDigits: 1 });
 const time = (s: number) =>
@@ -55,10 +58,12 @@ function App() {
       "build",
     ),
     [tab, setTab] = useState<keyof typeof catalog>("camera"),
-    [brief, setBrief] = useState(!localStorage.getItem("ols-intro")),
+    [brief, setBrief] = useState(!localStorage.getItem("ols-intro-v2")),
     [sources, setSources] = useState(false),
     [muted, setMuted] = useState(true),
-    [reduced, setReduced] = useState(false),
+    [reduced, setReduced] = useState(
+      () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    ),
     [speed, setSpeed] = useState(60),
     [paused, setPaused] = useState(false),
     [auto, setAuto] = useState(false),
@@ -69,6 +74,62 @@ function App() {
       cost: number;
     } | null>(null),
     [notice, setNotice] = useState("");
+  const [tutorial, setTutorial] = useState<number | null>(null);
+  const [trainingReady, setTrainingReady] = useState(false);
+  const [celebration, setCelebration] = useState("");
+  const lastCells = useRef(0);
+  useEffect(() => {
+    if (!notice) return;
+    const id = setTimeout(() => setNotice(""), 6500);
+    return () => clearTimeout(id);
+  }, [notice]);
+  useEffect(() => {
+    if (science(state.current).cells > lastCells.current) {
+      setCelebration(
+        `+${science(state.current).cells - lastCells.current} survey cell received on Earth`,
+      );
+      lastCells.current = science(state.current).cells;
+    }
+  }, [tick]);
+  useEffect(() => {
+    if (!celebration) return;
+    const id = setTimeout(() => setCelebration(""), 3500);
+    return () => clearTimeout(id);
+  }, [celebration]);
+  function startTutorial() {
+    localStorage.setItem("ols-intro-v2", "1");
+    setBrief(false);
+    setStage("build");
+    setDesign(initialDesign);
+    setTab("camera");
+    state.current = createState(initialDesign);
+    lastCells.current = 0;
+    setTutorial(0);
+    setTrainingReady(false);
+    setPaused(true);
+    setAuto(false);
+    setPrevious(null);
+    setCelebration("");
+  }
+  function coast(kind: "target" | "contact" = "target") {
+    const st = state.current;
+    const dt = nextWindow(design, st.t, kind);
+    if (dt === null) {
+      setNotice(
+        "This orbit never reaches the survey region. Choose a polar orbit in the hangar.",
+      );
+      return;
+    }
+    command(st, "charge");
+    advance(st, design, dt);
+    setAuto(false);
+    setPaused(true);
+    setTick((n) => n + 1);
+    setNotice(
+      `Coasted ${Math.ceil(dt / 60)} simulated minutes while charging. Mission resources advanced normally. Paused at the window: select a command to continue.`,
+    );
+  }
+
   const state = useRef<State>(createState(design));
   const v = vehicle(design),
     r = review(design),
@@ -91,12 +152,19 @@ function App() {
     } catch {}
   };
   const mode = (m: Mode) => {
+    setAuto(false);
+    setPaused(false);
     command(state.current, m);
+    if (tutorial === 4 || tutorial === 5) {
+      setPaused(false);
+      setSpeed(30);
+    }
+    if (tutorial === 6 && m === "charge") setTrainingReady(true);
     beep();
     setTick((n) => n + 1);
   };
   useEffect(() => {
-    if (stage !== "flight" || paused) return;
+    if (stage !== "flight" || paused || sources || brief) return;
     const id = setInterval(() => {
       const st = state.current;
       let remaining = speed * 0.1;
@@ -113,9 +181,18 @@ function App() {
                   : "charge",
           );
         }
-        const step = Math.min(remaining, 10 - (st.t % 10));
+        const boundary = 10 - (st.t % 10);
+        const step = Math.min(remaining, boundary < 1e-7 ? 10 : boundary);
         advance(st, design, step);
         remaining -= step;
+      }
+      if (tutorial === 4 && st.generated >= 8) {
+        setPaused(true);
+        setTrainingReady(true);
+      }
+      if (tutorial === 5 && science(st).cells >= 1) {
+        setPaused(true);
+        setTrainingReady(true);
       }
       setTick((n) => n + 1);
       if (st.ended) {
@@ -127,10 +204,15 @@ function App() {
       command(state.current, m);
     }
     return () => clearInterval(id);
-  }, [stage, paused, speed, auto, design]);
+  }, [stage, paused, speed, auto, design, sources, brief, tutorial]);
   useEffect(() => {
     const listener = (ev: KeyboardEvent) => {
+      if (ev.key === "Escape") {
+        setSources(false);
+        return;
+      }
       if (
+        ["BUTTON", "TEXTAREA"].includes((ev.target as HTMLElement).tagName) ||
         (ev.target as HTMLElement).tagName === "SELECT" ||
         (ev.target as HTMLElement).tagName === "INPUT" ||
         brief ||
@@ -160,7 +242,17 @@ function App() {
   }
   function launch() {
     state.current = createState(design);
-    setPaused(false);
+    lastCells.current = 0;
+    if (tutorial !== null) {
+      const dt = nextWindow(design, 0, "target") || 0;
+      advance(state.current, design, dt);
+      setPaused(true);
+      setSpeed(30);
+    } else {
+      setPaused(false);
+      setSpeed(120);
+    }
+    setAuto(false);
     setStage("flight");
     beep();
   }
@@ -227,7 +319,11 @@ function App() {
     URL.revokeObjectURL(u);
   };
   return (
-    <div className="app" data-tick={tick}>
+    <div
+      className={`app stage-${stage}`}
+      data-tick={tick}
+      data-tutorial={tutorial ?? ""}
+    >
       <header>
         <a className="brand" href="#" onClick={(ev) => ev.preventDefault()}>
           <span className="brand-mark">
@@ -242,6 +338,12 @@ function App() {
           <span className="nav-divider">/</span> LUNAR DIVISION
         </nav>
         <div className="header-actions">
+          <button
+            className="text-button tutorial-launch"
+            onClick={startTutorial}
+          >
+            <Play size={14} /> Flight school
+          </button>
           <button
             className="icon"
             aria-label={muted ? "Unmute sound" : "Mute sound"}
@@ -376,6 +478,40 @@ function App() {
           </div>
         </section>
         <aside>
+          {tutorial !== null && (
+            <Tutorial
+              step={tutorial}
+              ready={
+                tutorial === 0
+                  ? design.camera === "context"
+                  : tutorial === 1
+                    ? design.radio === "strong"
+                    : tutorial === 2
+                      ? stage === "review"
+                      : tutorial === 3
+                        ? stage === "flight"
+                        : trainingReady
+              }
+              onClose={() => {
+                setTutorial(null);
+                setPaused(false);
+              }}
+              onNext={() => {
+                if (tutorial === 6) {
+                  setTutorial(null);
+                  setPaused(false);
+                  setSpeed(120);
+                  setCelebration(
+                    "FLIGHT SCHOOL COMPLETE · You have the controls.",
+                  );
+                  setTimeout(() => setCelebration(""), 4000);
+                } else {
+                  setTutorial(tutorial + 1);
+                  setTrainingReady(false);
+                }
+              }}
+            />
+          )}
           {stage === "build" ? (
             <>
               <div className="panel-title">
@@ -593,6 +729,23 @@ function App() {
                   <span className="live-dot" /> LIVE
                 </span>
               </div>
+              <FlightMap design={design} state={s} />
+              <div className="flight-director">
+                <span>FLIGHT DIRECTOR</span>
+                <b>
+                  {s.slew > 0
+                    ? `Turning spacecraft… ${Math.ceil(s.slew)}s`
+                    : s.energy < v.capacity * 0.2
+                      ? "Battery low. Charge before the next eclipse."
+                      : s.full
+                        ? "Recorder full. Downlink to free storage."
+                        : e.target
+                          ? "Survey window open. Aim instruments at the surface."
+                          : queued(s) > 0 && e.contact
+                            ? "Earth is in view. Bring your evidence home."
+                            : "Coast to the next survey window, or prepare your power reserve."}
+                </b>
+              </div>
               <div className="flight-status">
                 <span>ORBIT {e.orbit} / 6</span>
                 <b>{time(s.t)}</b>
@@ -667,6 +820,32 @@ function App() {
                   </button>
                 ))}
               </div>
+              <button
+                className="priority-data"
+                onClick={() => {
+                  prioritizeDiscoveries(s);
+                  setNotice(
+                    "Unique, not-yet-received measurements are now at the front of the downlink queue. No data was discarded.",
+                  );
+                  setTick((n) => n + 1);
+                }}
+              >
+                ✦ Prioritize discoveries{" "}
+                <small>Send new evidence before repeated observations</small>
+              </button>
+              <div className="coast-actions">
+                <button
+                  onClick={() =>
+                    coast(e.target && queued(s) > 0 ? "contact" : "target")
+                  }
+                >
+                  ⏩ Coast to{" "}
+                  {e.target && queued(s) > 0
+                    ? "Earth contact"
+                    : "survey window"}
+                </button>
+                <span>Resources keep running</span>
+              </div>
               <div className="transport">
                 <button
                   aria-label={paused ? "Resume" : "Pause"}
@@ -737,7 +916,9 @@ function App() {
                   setPaused(true);
                 }}
               >
-                End mission & inspect results →
+                {sc.cells >= 3
+                  ? "✓ Bring it home — complete mission"
+                  : "End mission & inspect results →"}
               </button>
             </>
           ) : (
@@ -748,6 +929,15 @@ function App() {
                   ? "Evidence, delivered."
                   : "A lesson from the Moon."}
               </h2>
+              <div className="mission-medals">
+                <span>
+                  {sc.cells >= 3 ? "🏅 MISSION ACCOMPLISHED" : "🛰 EXPLORER"}
+                </span>
+                {s.sent > 0 && s.sent / Math.max(1, s.generated) > 0.9 && (
+                  <span>📡 CLEAN DOWNLINK</span>
+                )}
+                {v.cost <= 38 && sc.cells >= 3 && <span>✦ RESOURCEFUL</span>}
+              </div>
               <div className="report-score">
                 <b>
                   {sc.score}
@@ -759,6 +949,11 @@ function App() {
                     : "OBJECTIVE INCOMPLETE"}
                 </span>
               </div>
+              <p className="score-explainer">
+                Score rewards completed coverage plus received image detail.
+                Three context cells earn 85; high-detail evidence can add a
+                bonus. Only delivered evidence counts.
+              </p>
               <div className="report-stats">
                 <div>
                   <span>GENERATED</span>
@@ -835,6 +1030,15 @@ function App() {
         </span>
         <span>ONE MISSION. MANY POSSIBLE ANSWERS.</span>
       </footer>
+      {celebration && (
+        <div className="achievement" role="status">
+          <span>✦</span>
+          <div>
+            <small>MISSION MILESTONE</small>
+            <b>{celebration}</b>
+          </div>
+        </div>
+      )}
       {notice && (
         <div className="toast" role="status">
           {notice}
@@ -870,17 +1074,20 @@ function App() {
               <ArrowRight size={15} />
               <span>03 LEARN</span>
             </div>
+            <button className="primary" onClick={startTutorial}>
+              Start guided first mission <ArrowRight size={18} />
+            </button>
             <button
-              className="primary"
+              className="secondary"
               onClick={() => {
                 setBrief(false);
-                localStorage.setItem("ols-intro", "1");
+                localStorage.setItem("ols-intro-v2", "1");
               }}
             >
               Enter the assembly bay <ArrowRight size={18} />
             </button>
             <small>
-              8–12 minute mission · Single player · No account required
+              Guided first mission · Manual control · No account required
             </small>
           </div>
         </div>

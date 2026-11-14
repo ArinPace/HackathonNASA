@@ -9,3 +9,6 @@ Worker isolation, full command-log replay UI, autonomous design optimization, ma
 
 # Run
 `npm install`, `npm run dev`; `npm test`; `npm run build`. No accounts or keys required.
+
+# Flight school revision
+Added a seven-step action-gated tutorial, replayable help, event coasting with resource accounting, live orbital SVG, active scan/downlink beam, flight-director hints, unique-evidence transmission priority, science milestones and medals. Fixed manual commands being overridden by auto, persistent toasts, detached panel-grid rendering and commands failing to resume after a pause/coast. Notes pause the mission. Compact mobile operations layout and reduced-motion preference supported. Added tutorial browser coverage and transmission-priority/score invariants.

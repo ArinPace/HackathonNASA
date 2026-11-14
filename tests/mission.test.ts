@@ -66,3 +66,30 @@ test("no science reception without downlink command", () => {
   assert.equal(s.sent, 0);
   assert.equal(science(s).cells, 0);
 });
+
+test("prioritizing unique evidence conserves data and accelerates useful reception", async () => {
+  const { prioritizeDiscoveries } = await import("../src/sim/mission.ts");
+  const s = createState(initialDesign);
+  s.queue = [
+    { cell: 1, kind: "proxy", size: 1, remaining: 1, quality: 1 },
+    { cell: 1, kind: "proxy", size: 1, remaining: 1, quality: 1 },
+    { cell: 2, kind: "context", size: 3, remaining: 3, quality: 1 },
+  ];
+  const before = queued(s);
+  prioritizeDiscoveries(s);
+  assert.equal(queued(s), before);
+  assert.equal(s.queue[1].cell, 2);
+  assert.equal(s.queue.length, 3);
+});
+
+test("received detailed images have a genuine score advantage at equal coverage", () => {
+  const s = createState(initialDesign);
+  for (let i = 0; i < 3; i++) {
+    s.received[`${i}-proxy`] = 1;
+    s.received[`${i}-context`] = 1;
+  }
+  const base = science(s).score;
+  for (let i = 0; i < 3; i++) s.received[`${i}-context`] = 1.5;
+  assert.equal(base, 85);
+  assert.equal(science(s).score, 100);
+});

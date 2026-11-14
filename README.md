@@ -23,3 +23,8 @@ Original game concept: participant, as confirmed by participant. AI assisted sou
 
 ## Roadmap
 Full arbitrary spacecraft construction, hand-flown ascent, docking, crew, surface exploration, atmosphere/thermal modeling, career and multiplayer are future scope. This release does not claim KSP feature parity. See docs for planning and submission preparation.
+
+## Flight school update
+The opening screen offers a seven-step hands-on walkthrough; use **Flight school** in the header to restart it. Steps require actual hardware selections, deployment, acquisition, received science and charging. Training coasts through modeled time to the first target window and pauses at learning checkpoints. After training, manual commands resume time and override the auto operator. The live orbital schematic explains target/Earth geometry. **Coast to window** advances resources normally and pauses on arrival; choose a command to continue. **Prioritize discoveries** schedules unseen measurements before repeats without discarding packets. Science score rewards coverage and received image detail, with a documented cap. Reception milestones and end-of-mission medals use actual state.
+
+Additional verification: `node tests/tutorial.mjs` covers the guided mission, manual override, coast and mobile overflow. Browser scripts use the existing local Chromium executable and should be adjusted on other machines.

@@ -266,13 +266,16 @@ export function science(s: State) {
       b = s.received[`${i}-context`];
     if (a && b) {
       cells++;
-      quality += Math.min(a, b);
+      quality += (a + b) / 2;
     }
   }
   return {
     cells,
     quality,
-    score: Math.min(100, Math.round((quality / 3) * 100)),
+    score: Math.min(
+      100,
+      Math.round((cells / 3) * 85 + Math.max(0, quality - cells) * 20),
+    ),
   };
 }
 // Fixed <=1-second substeps preserve thresholds across rendering rates/time warp.
@@ -401,4 +404,21 @@ export function simulate(d: Design) {
     advance(s, d, 10);
   }
   return s;
+}
+
+// A real operations decision: deliver first-of-kind records before repeats.
+export function prioritizeDiscoveries(s: State) {
+  const seen = new Set<string>();
+  const ranked = s.queue.map((packet, index) => {
+    const key = `${packet.cell}-${packet.kind}`;
+    const rank = s.received[key] ? 2 : seen.has(key) ? 1 : 0;
+    seen.add(key);
+    return { packet, index, rank };
+  });
+  ranked.sort((a, b) => a.rank - b.rank || a.index - b.index);
+  s.queue = ranked.map((x) => x.packet);
+  note(
+    s,
+    "Ground control reprioritized unique evidence ahead of repeated observations.",
+  );
 }
