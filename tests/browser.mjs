@@ -1,3 +1,4 @@
+import { flyLaunch } from "./launch-flow.mjs";
 import { chromium } from "@playwright/test";
 const browser = await chromium.launch({
   headless: true,
@@ -17,7 +18,7 @@ await page.screenshot({
 });
 await page.getByRole("button", { name: "Load reference" }).click();
 await page.getByRole("button", { name: "Review mission" }).click();
-await page.getByRole("button", { name: "Commit & deploy" }).click();
+await flyLaunch(page);
 await page.getByLabel("Simulation speed").selectOption("600");
 await page.getByLabel("Auto operator").check();
 await page.waitForTimeout(3000);

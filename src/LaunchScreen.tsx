@@ -1,0 +1,467 @@
+import { useEffect, useRef, useState } from "react";
+import {
+  Rocket,
+  ArrowRight,
+  Pause,
+  Play,
+  RotateCcw,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
+import { newLaunch, launchStep, separate } from "./sim/launch";
+import { LaunchScene } from "./LaunchScene";
+import { vehicle, type Design } from "./sim/mission";
+export function LaunchScreen({
+  design,
+  reduced,
+  muted,
+  paused,
+  onMute,
+  onComplete,
+}: {
+  design: Design;
+  reduced: boolean;
+  muted: boolean;
+  paused: boolean;
+  onMute: () => void;
+  onComplete: () => void;
+}) {
+  const state = useRef(newLaunch()),
+    [, render] = useState(0),
+    [hold, setHold] = useState(false),
+    [travel, setTravel] = useState<number | null>(null),
+    [tip, setTip] = useState("");
+  const audio = useRef<AudioContext | null>(null),
+    rumble = useRef<{ osc: OscillatorNode; gain: GainNode } | null>(null);
+  const muteRef = useRef(muted);
+  muteRef.current = muted;
+  useEffect(() => {
+    let id = 0,
+      last = 0,
+      paint = 0;
+    function frame(now: number) {
+      id = requestAnimationFrame(frame);
+      const dt = last ? Math.min(0.1, (now - last) / 1000) : 0;
+      last = now;
+      if (!paused && !hold && travel === null)
+        launchStep(state.current, dt, vehicle(design).mass);
+      if (rumble.current) {
+        const firing =
+          state.current.status === "flying" &&
+          state.current.fuel[state.current.stage - 1] > 0;
+        rumble.current.gain.gain.setTargetAtTime(
+          firing && !muteRef.current ? 0.035 : 0,
+          audio.current!.currentTime,
+          0.1,
+        );
+      }
+      if (now - paint > 80) {
+        render((n) => n + 1);
+        paint = now;
+      }
+    }
+    id = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(id);
+  }, [paused, hold, travel === null, design]);
+  useEffect(() => {
+    if (travel === null || paused || hold) return;
+    const id = setInterval(
+      () => setTravel((p) => (p === null ? null : Math.min(1, p + 0.025))),
+      150,
+    );
+    return () => clearInterval(id);
+  }, [travel === null, paused, hold]);
+  useEffect(
+    () => () => {
+      rumble.current?.osc.stop();
+      void audio.current?.close();
+    },
+    [],
+  );
+  function ignite() {
+    const s = state.current;
+    if (s.status !== "ready") return;
+    s.status = "countdown";
+    try {
+      rumble.current?.osc.stop();
+      void audio.current?.close();
+      const ctx = new AudioContext();
+      audio.current = ctx;
+      const osc = ctx.createOscillator(),
+        gain = ctx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.value = 36;
+      gain.gain.value = 0;
+      osc.connect(gain).connect(ctx.destination);
+      osc.start();
+      rumble.current = { osc, gain };
+    } catch {}
+    render((n) => n + 1);
+  }
+  function stage() {
+    if (separate(state.current)) {
+      setTip(
+        "Booster separated! The upper engine is now pushing your explorer toward space.",
+      );
+    } else
+      setTip(
+        "Wait until booster fuel is below 5%. Dropping it now would waste usable fuel.",
+      );
+    render((n) => n + 1);
+  }
+  function steer(delta: number) {
+    state.current.assist = false;
+    state.current.pitch = Math.max(
+      -65,
+      Math.min(65, state.current.pitch + delta),
+    );
+    render((n) => n + 1);
+  }
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if (
+        ["INPUT", "SELECT", "TEXTAREA"].includes(
+          (e.target as HTMLElement).tagName,
+        )
+      )
+        return;
+      if (
+        e.code === "Space" &&
+        (e.target as HTMLElement).tagName !== "BUTTON"
+      ) {
+        e.preventDefault();
+        stage();
+      }
+      if (e.key === "a" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        steer(-3);
+      }
+      if (e.key === "d" || e.key === "ArrowRight") {
+        e.preventDefault();
+        steer(3);
+      }
+    };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, []);
+  const s = state.current,
+    stageReady = s.status === "flying" && s.stage === 1 && s.fuel[0] <= 15000;
+  const subtitle =
+    s.status === "ready"
+      ? "Your explorer is inside the tip of this rocket. Let’s get it off Earth."
+      : s.status === "countdown"
+        ? "Engine checks complete. Stand by for liftoff."
+        : s.status === "failed"
+          ? "The climb did not work. Try again with flight assistance, or more thrust."
+          : s.status === "handoff"
+            ? "You reached the edge of space. Next: the guided journey to the Moon."
+            : stageReady
+              ? "The booster is nearly empty. Separate it to drop dead weight and start the next engine."
+              : s.stage === 2
+                ? "Upper engine firing. Your rocket is lighter now—watch it climb."
+                : "The engine pushes up; Earth’s gravity pulls down. Keep enough thrust to climb.";
+  return (
+    <section className="launch-screen" aria-label="Rocket launch">
+      <div className="launch-theater">
+        {travel === null ? (
+          <>
+            <LaunchScene
+              state={s}
+              heavy={design.launcher === "heavy"}
+              reduced={reduced}
+            />
+            <div className="launch-scene-title">
+              <span className="eyebrow">EARTH · LAUNCH COMPLEX 01</span>
+              <h1>
+                {s.status === "ready"
+                  ? "Your ride to the Moon."
+                  : s.status === "countdown"
+                    ? "All eyes on the sky."
+                    : s.status === "handoff"
+                      ? "Hello, space."
+                      : s.status === "failed"
+                        ? "Every flight teaches."
+                        : "We have liftoff."}
+              </h1>
+              <span className="launch-phase">
+                {s.status === "flying"
+                  ? `T+${Math.floor(s.time)}s · ${s.stage === 1 ? "BOOSTER" : "UPPER ENGINE"}`
+                  : "LUNAR POLAR SCOUT · " + s.status.toUpperCase()}
+              </span>
+            </div>
+            {s.status === "countdown" && (
+              <div className="countdown-number" aria-live="assertive">
+                {Math.ceil(s.countdown)}
+              </div>
+            )}
+            <div className="launch-instruments">
+              <div>
+                <span>HEIGHT ABOVE EARTH</span>
+                <b>
+                  {(s.altitude / 1000).toFixed(1)}
+                  <small> km</small>
+                </b>
+              </div>
+              <div>
+                <span>CLIMB SPEED</span>
+                <b>
+                  {Math.round(s.velocity)}
+                  <small> m/s</small>
+                </b>
+              </div>
+              <div>
+                <span>ROCKET STAGE</span>
+                <b>
+                  {s.stage}
+                  <small> / 2</small>
+                </b>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="transfer-scene">
+            <span className="eyebrow">
+              GUIDED TRANSFER · THREE DAYS COMPRESSED
+            </span>
+            <h1>
+              Next stop.
+              <br />
+              <em>The Moon.</em>
+            </h1>
+            <div className="transfer-path">
+              <div className="transfer-earth">
+                🌍<span>EARTH</span>
+              </div>
+              <div className="transfer-track">
+                <i style={{ width: `${travel * 100}%` }} />
+                <Rocket
+                  className="transfer-ship"
+                  style={{ left: `${travel * 90}%` }}
+                />
+              </div>
+              <div className="transfer-moon">
+                🌕<span>MOON</span>
+              </div>
+            </div>
+            <div className="transfer-chapters">
+              <span className={travel > 0.1 ? "done" : ""}>01 LEAVE EARTH</span>
+              <span className={travel > 0.45 ? "done" : ""}>02 CRUISE</span>
+              <span className={travel > 0.85 ? "done" : ""}>
+                03 ENTER LUNAR ORBIT
+              </span>
+            </div>
+            <p>
+              {travel < 0.3
+                ? "The launch service supplies the speed and direction for the trip."
+                : travel < 0.8
+                  ? "Your robot coasts through space. A rocket does not need to keep firing all the way."
+                  : "Arrival burn: the service slows your explorer so it circles the Moon instead of flying past."}
+            </p>
+            <small>
+              Illustrative travel sequence. Orbital insertion and Earth–Moon
+              transfer are guided, not calculated by the ascent mini-game.
+            </small>
+          </div>
+        )}
+      </div>
+      <aside className="launch-panel">
+        <span className="eyebrow">
+          {travel === null ? "YOU ARE LAUNCH DIRECTOR" : "ARRIVAL BRIEFING"}
+        </span>
+        <h2>
+          {travel === null
+            ? "Let’s launch your explorer."
+            : "Now you are mission control."}
+        </h2>
+        <p className="launch-explanation">
+          {travel === null
+            ? subtitle
+            : "The rocket’s job is done. Your robot is now circling the Moon. Take pictures, collect practice sensor readings, and send them home."}
+        </p>
+        {travel === null ? (
+          <>
+            <div className="launch-lesson">
+              <Rocket size={20} />
+              <div>
+                <b>Why does a rocket have stages?</b>
+                <p>
+                  Fuel tanks become useless weight when empty. Dropping an empty
+                  section lets the next engine push a much lighter spacecraft.
+                </p>
+              </div>
+            </div>
+            <label className="assist-toggle">
+              <input
+                type="checkbox"
+                checked={s.assist}
+                onChange={(e) => {
+                  s.assist = e.target.checked;
+                  render((n) => n + 1);
+                }}
+              />
+              <div>
+                <b>Flight assistance</b>
+                <small>
+                  Recommended first flight. Holds a safe throttle and direction;
+                  waits for you to separate the booster.
+                </small>
+              </div>
+            </label>
+            <div className="launch-fuel">
+              <div>
+                <span>
+                  {s.stage === 1 ? "BOOSTER FUEL" : "UPPER-STAGE FUEL"}
+                </span>
+                <b>
+                  {Math.round(
+                    (s.fuel[s.stage - 1] / (s.stage === 1 ? 300000 : 90000)) *
+                      100,
+                  )}
+                  %
+                </b>
+              </div>
+              <div className="bar">
+                <i
+                  style={{
+                    width: `${(s.fuel[s.stage - 1] / (s.stage === 1 ? 300000 : 90000)) * 100}%`,
+                  }}
+                />
+              </div>
+            </div>
+            <label className="throttle-control">
+              ENGINE THROTTLE <b>{Math.round(s.throttle * 100)}%</b>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={Math.round(s.throttle * 100)}
+                aria-label="Engine throttle"
+                onChange={(e) => {
+                  s.assist = false;
+                  s.throttle = +e.target.value / 100;
+                  render((n) => n + 1);
+                }}
+              />
+              <small>
+                More throttle = more push and faster fuel use. Moving this
+                slider takes manual control.
+              </small>
+            </label>
+            <div className="steer-controls">
+              <button onClick={() => steer(-3)} aria-label="Steer left">
+                ← A
+              </button>
+              <div>
+                <span>LEAN ANGLE</span>
+                <b>{Math.round(s.pitch)}°</b>
+              </div>
+              <button onClick={() => steer(3)} aria-label="Steer right">
+                D →
+              </button>
+            </div>
+            {s.status === "ready" ? (
+              <button className="primary ignite" onClick={ignite}>
+                Start countdown <Rocket size={18} />
+              </button>
+            ) : s.status === "failed" ? (
+              <button
+                className="primary"
+                onClick={() => {
+                  state.current = newLaunch();
+                  setTip("");
+                }}
+              >
+                Retry launch <RotateCcw size={17} />
+              </button>
+            ) : s.status === "handoff" ? (
+              <button className="primary" onClick={() => setTravel(0)}>
+                Set course for the Moon <ArrowRight size={18} />
+              </button>
+            ) : (
+              <button
+                className={
+                  "primary separate " + (stageReady ? "stage-ready" : "")
+                }
+                disabled={!stageReady}
+                onClick={stage}
+              >
+                {s.stage === 2 ? "✓ Booster separated" : "Separate booster"}
+                <span>SPACE</span>
+              </button>
+            )}
+            {stageReady && (
+              <p className="stage-alert" role="status">
+                STAGE READY · Press Space or the button above.
+              </p>
+            )}
+            {tip && (
+              <p className="launch-tip" role="status">
+                {tip}
+              </p>
+            )}
+            <div className="launch-tools">
+              <button onClick={() => setHold(!hold)}>
+                {hold ? <Play size={14} /> : <Pause size={14} />}{" "}
+                {hold ? "Resume" : "Pause"}
+              </button>
+              <button onClick={onMute}>
+                {muted ? <VolumeX size={14} /> : <Volume2 size={14} />}{" "}
+                {muted ? "Enable engine sound" : "Mute engine sound"}
+              </button>
+            </div>
+            <p className="launch-model-note">
+              Simplified vertical ascent · 4× compressed flight time · 100 km is
+              the edge of space, not orbit. The launch service performs the
+              later insertion and transfer.
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="arrival-controls">
+              <div>
+                <span>1</span>
+                <section>
+                  <b>Look at the Moon</b>
+                  <p>
+                    Observe means point the sensors down and collect
+                    discoveries.
+                  </p>
+                </section>
+              </div>
+              <div>
+                <span>2</span>
+                <section>
+                  <b>Send them home</b>
+                  <p>
+                    Downlink means point the antenna toward Earth and transmit.
+                  </p>
+                </section>
+              </div>
+              <div>
+                <span>3</span>
+                <section>
+                  <b>Refill the battery</b>
+                  <p>Charge means turn the solar panels toward sunlight.</p>
+                </section>
+              </div>
+            </div>
+            <button
+              className="primary"
+              disabled={travel < 1}
+              onClick={onComplete}
+            >
+              {travel < 1
+                ? "Travelling to the Moon…"
+                : "Deploy explorer & take control"}
+              <ArrowRight size={17} />
+            </button>
+            <p className="launch-model-note">
+              The guided first mission pauses at your first observation window.
+              You will not have to guess what to do.
+            </p>
+          </>
+        )}
+      </aside>
+    </section>
+  );
+}

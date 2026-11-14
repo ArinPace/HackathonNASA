@@ -41,6 +41,8 @@ import {
 } from "./sim/mission";
 import "./style.css";
 import { Tutorial } from "./Tutorial";
+import { MissionIntro } from "./MissionIntro";
+import { LaunchScreen } from "./LaunchScreen";
 import { FlightMap, nextWindow } from "./FlightMap";
 const fmt = (n: number) =>
   n.toLocaleString(undefined, { maximumFractionDigits: 1 });
@@ -54,11 +56,11 @@ const time = (s: number) =>
     .padStart(2, "0")}`;
 function App() {
   const [design, setDesign] = useState<Design>(initialDesign),
-    [stage, setStage] = useState<"build" | "review" | "flight" | "report">(
-      "build",
-    ),
+    [stage, setStage] = useState<
+      "build" | "review" | "launch" | "flight" | "report"
+    >("build"),
     [tab, setTab] = useState<keyof typeof catalog>("camera"),
-    [brief, setBrief] = useState(!localStorage.getItem("ols-intro-v2")),
+    [brief, setBrief] = useState(!localStorage.getItem("ols-intro-v3")),
     [sources, setSources] = useState(false),
     [muted, setMuted] = useState(true),
     [reduced, setReduced] = useState(
@@ -97,7 +99,7 @@ function App() {
     return () => clearTimeout(id);
   }, [celebration]);
   function startTutorial() {
-    localStorage.setItem("ols-intro-v2", "1");
+    localStorage.setItem("ols-intro-v3", "1");
     setBrief(false);
     setStage("build");
     setDesign(initialDesign);
@@ -241,6 +243,11 @@ function App() {
     beep();
   }
   function launch() {
+    if (review(design).blockers.length) return;
+    setStage("launch");
+    setPaused(true);
+  }
+  function enterLunarOrbit() {
     state.current = createState(design);
     lastCells.current = 0;
     if (tutorial !== null) {
@@ -339,6 +346,12 @@ function App() {
         </nav>
         <div className="header-actions">
           <button
+            className="text-button basics-button"
+            onClick={() => setBrief(true)}
+          >
+            Mission basics
+          </button>
+          <button
             className="text-button tutorial-launch"
             onClick={startTutorial}
           >
@@ -361,10 +374,12 @@ function App() {
           FLIGHT PROGRAM <b>LP–006</b>
         </div>
         <div className="steps">
-          {["ASSEMBLE", "REVIEW", "OPERATE", "DEBRIEF"].map((x, i) => (
+          {["BUILD", "REVIEW", "LAUNCH", "EXPLORE", "RESULTS"].map((x, i) => (
             <span
               className={
-                ["build", "review", "flight", "report"].indexOf(stage) === i
+                ["build", "review", "launch", "flight", "report"].indexOf(
+                  stage,
+                ) === i
                   ? "active"
                   : ""
               }
@@ -372,654 +387,678 @@ function App() {
             >
               <i>{i + 1}</i>
               {x}
-              {i < 3 && <ChevronRight size={13} />}
+              {i < 4 && <ChevronRight size={13} />}
             </span>
           ))}
         </div>
         <span className="version">SIMULATION / 01</span>
       </div>
-      <main>
-        <section className="workspace">
-          <div className="scene-heading">
-            <div className="eyebrow">
-              <span className="tiny-square" />{" "}
-              {stage === "build"
-                ? "VEHICLE ASSEMBLY BAY"
-                : stage === "review"
-                  ? "PRE-FLIGHT READINESS"
-                  : stage === "report"
-                    ? "MISSION ARCHIVE"
-                    : "LUNAR OPERATIONS"}
-            </div>
-            <h1>
-              {stage === "build" ? (
-                <>
-                  Big ambitions.
-                  <br />
-                  <em>Finite resources.</em>
-                </>
-              ) : stage === "review" ? (
-                <>
-                  Ready for
-                  <br />
-                  <em>the unknown?</em>
-                </>
-              ) : stage === "report" ? (
-                <>
-                  The science
-                  <br />
-                  <em>made it home?</em>
-                </>
-              ) : (
-                <>
-                  A long way
-                  <br />
-                  <em>from home.</em>
-                </>
-              )}
-            </h1>
-            <p>
-              {stage === "build"
-                ? "Build a spacecraft that can do more than reach the Moon. Build one that can bring the science back."
-                : stage === "review"
-                  ? "A working spacecraft is a system of compromises. Know yours before you commit."
-                  : stage === "report"
-                    ? "Every byte has a journey. See what your choices made possible."
-                    : "Six orbits. One spacecraft. Make every observation—and every contact—count."}
-            </p>
-          </div>
-          <Scene
-            design={design}
-            state={s}
-            flight={stage === "flight" || stage === "report"}
-            reduced={reduced}
-          />
-          <div className="scene-label">
-            <span className="crosshair">＋</span>
-            <div>
-              LUNAR POLAR SCOUT
-              <small>
+      {stage === "launch" ? (
+        <LaunchScreen
+          design={design}
+          muted={muted}
+          onMute={() => setMuted(!muted)}
+          reduced={reduced}
+          paused={sources || brief}
+          onComplete={enterLunarOrbit}
+        />
+      ) : (
+        <main>
+          <section className="workspace">
+            <div className="scene-heading">
+              <div className="eyebrow">
+                <span className="tiny-square" />{" "}
                 {stage === "build"
-                  ? "CONFIGURATION / " +
-                    (design.camera === "detail" ? "HIGH DETAIL" : "WIDE SURVEY")
-                  : `MISSION ELAPSED / ${time(s.t)}`}
-              </small>
-            </div>
-            <span className="scene-tag">
-              {stage === "flight"
-                ? e.eclipse
-                  ? "IN ECLIPSE"
-                  : "SUNLIT"
-                : "UNCREWED / CLASS I"}
-            </span>
-          </div>
-          <div className="scene-footer">
-            <span>
-              ← DRAG TO ROTATE{" "}
-              {stage === "flight" ? " · POINTING FOLLOWS COMMANDS" : ""}
-            </span>
-            <span>
-              EARTH → MOON <ArrowUpRight size={13} />
-            </span>
-          </div>
-          <div className="objective">
-            <div className="objective-icon">
-              <ScanLine size={21} />
-            </div>
-            <div>
-              <span className="eyebrow">THE MISSION</span>
-              <h3>Find the next place to look.</h3>
+                  ? "VEHICLE ASSEMBLY BAY"
+                  : stage === "review"
+                    ? "PRE-FLIGHT READINESS"
+                    : stage === "report"
+                      ? "MISSION ARCHIVE"
+                      : "LUNAR OPERATIONS"}
+              </div>
+              <h1>
+                {stage === "build" ? (
+                  <>
+                    Build a robot.
+                    <br />
+                    <em>Explore the Moon.</em>
+                  </>
+                ) : stage === "review" ? (
+                  <>
+                    Ready for
+                    <br />
+                    <em>the unknown?</em>
+                  </>
+                ) : stage === "report" ? (
+                  <>
+                    The science
+                    <br />
+                    <em>made it home?</em>
+                  </>
+                ) : (
+                  <>
+                    A long way
+                    <br />
+                    <em>from home.</em>
+                  </>
+                )}
+              </h1>
               <p>
-                Survey the lunar south pole. Return paired hydrogen-proxy and
-                context observations from at least <b>3 unique cells</b>.
+                {stage === "build"
+                  ? "Pick your robot’s equipment. Launch it from Earth. Bring pictures and discoveries home from the Moon."
+                  : stage === "review"
+                    ? "A working spacecraft is a system of compromises. Know yours before you commit."
+                    : stage === "report"
+                      ? "Every byte has a journey. See what your choices made possible."
+                      : "Six orbits. One spacecraft. Make every observation—and every contact—count."}
               </p>
             </div>
-            <span className="objective-id">01 / SCIENCE</span>
-          </div>
-        </section>
-        <aside>
-          {tutorial !== null && (
-            <Tutorial
-              step={tutorial}
-              ready={
-                tutorial === 0
-                  ? design.camera === "context"
-                  : tutorial === 1
-                    ? design.radio === "strong"
-                    : tutorial === 2
-                      ? stage === "review"
-                      : tutorial === 3
-                        ? stage === "flight"
-                        : trainingReady
-              }
-              onClose={() => {
-                setTutorial(null);
-                setPaused(false);
-              }}
-              onNext={() => {
-                if (tutorial === 6) {
+            <Scene
+              design={design}
+              state={s}
+              flight={stage === "flight" || stage === "report"}
+              reduced={reduced}
+            />
+            <div className="scene-label">
+              <span className="crosshair">＋</span>
+              <div>
+                LUNAR POLAR SCOUT
+                <small>
+                  {stage === "build"
+                    ? "CONFIGURATION / " +
+                      (design.camera === "detail"
+                        ? "HIGH DETAIL"
+                        : "WIDE SURVEY")
+                    : `MISSION ELAPSED / ${time(s.t)}`}
+                </small>
+              </div>
+              <span className="scene-tag">
+                {stage === "flight"
+                  ? e.eclipse
+                    ? "IN ECLIPSE"
+                    : "SUNLIT"
+                  : "UNCREWED / CLASS I"}
+              </span>
+            </div>
+            <div className="scene-footer">
+              <span>
+                ← DRAG TO ROTATE{" "}
+                {stage === "flight" ? " · POINTING FOLLOWS COMMANDS" : ""}
+              </span>
+              <span>
+                EARTH → MOON <ArrowUpRight size={13} />
+              </span>
+            </div>
+            <div className="objective">
+              <div className="objective-icon">
+                <ScanLine size={21} />
+              </div>
+              <div>
+                <span className="eyebrow">THE MISSION</span>
+                <h3>Bring three discoveries home.</h3>
+                <p>
+                  Visit the Moon’s south pole. Send pictures and water-clue
+                  sensor readings home from <b>3 different areas</b>.
+                </p>
+              </div>
+              <span className="objective-id">01 / SCIENCE</span>
+            </div>
+          </section>
+          <aside>
+            {tutorial !== null && (
+              <Tutorial
+                step={tutorial}
+                ready={
+                  tutorial === 0
+                    ? design.camera === "context"
+                    : tutorial === 1
+                      ? design.radio === "strong"
+                      : tutorial === 2
+                        ? stage === "review"
+                        : tutorial === 3
+                          ? stage === "flight"
+                          : trainingReady
+                }
+                onClose={() => {
                   setTutorial(null);
                   setPaused(false);
-                  setSpeed(120);
-                  setCelebration(
-                    "FLIGHT SCHOOL COMPLETE · You have the controls.",
-                  );
-                  setTimeout(() => setCelebration(""), 4000);
-                } else {
-                  setTutorial(tutorial + 1);
-                  setTrainingReady(false);
-                }
-              }}
-            />
-          )}
-          {stage === "build" ? (
-            <>
-              <div className="panel-title">
-                <div>
-                  <span className="eyebrow">YOUR SPACECRAFT</span>
-                  <h2>Engineer the outcome.</h2>
-                </div>
-                <span className="pill">8 SUBSYSTEMS</span>
-              </div>
-              <div className="tabs">
-                {(Object.keys(catalog) as (keyof typeof catalog)[]).map((k) => (
-                  <button
-                    key={k}
-                    className={tab === k ? "selected" : ""}
-                    onClick={() => setTab(k)}
-                  >
-                    {
-                      {
-                        camera: "Payload",
-                        radio: "Comms",
-                        solar: "Power",
-                        battery: "Battery",
-                        storage: "Data",
-                      }[k]
-                    }
-                  </button>
-                ))}
-              </div>
-              <div className="option-list">
-                {catalog[tab].map((part) => (
-                  <button
-                    key={part.id}
-                    className={
-                      "part " + (design[tab] === part.id ? "chosen" : "")
-                    }
-                    onClick={() => change(tab, part.id)}
-                  >
-                    <span className="part-icon">
-                      {tab === "camera" ? (
-                        <ScanLine />
-                      ) : tab === "radio" ? (
-                        <Radio />
-                      ) : tab === "solar" ? (
-                        <Sun />
-                      ) : tab === "battery" ? (
-                        <Shield />
-                      ) : (
-                        <Satellite />
-                      )}
-                    </span>
-                    <div>
-                      <h3>{part.name}</h3>
-                      <p>{part.description}</p>
-                      <span className="part-spec">
-                        {part.mass} KG <b>·</b> ${part.cost}M
-                      </span>
-                    </div>
-                    <span className="radio-circle">
-                      {design[tab] === part.id && <Check size={12} />}
-                    </span>
-                  </button>
-                ))}
-              </div>
-              <div className="included">
-                <Check size={14} /> Included: flight bus · hydrogen sensor ·
-                propulsion reserve
-              </div>
-              <div className="field-row">
-                <label>
-                  MISSION ORBIT
-                  <select
-                    value={design.orbit}
-                    onChange={(ev) => change("orbit", ev.target.value)}
-                  >
-                    <option value="polar">100 km · Polar survey</option>
-                    <option value="high">300 km · Polar survey</option>
-                    <option value="equatorial">100 km · Equatorial</option>
-                  </select>
-                </label>
-                <label>
-                  LAUNCH SERVICE
-                  <select
-                    value={design.launcher}
-                    onChange={(ev) => change("launcher", ev.target.value)}
-                  >
-                    <option value="light">Light · 100 kg · $18M</option>
-                    <option value="heavy">Heavy · 150 kg · $24M</option>
-                  </select>
-                </label>
-              </div>
-              <div className="budget">
-                <div>
-                  <span>MISSION BUDGET</span>
-                  <b className={v.cost > 40 ? "danger" : ""}>
-                    ${fmt(v.cost)}
-                    <small> / $40M</small>
-                  </b>
-                </div>
-                <div className="bar">
-                  <i
-                    style={{
-                      width: `${Math.min(100, (v.cost / 40) * 100)}%`,
-                      background: v.cost > 40 ? "var(--red)" : undefined,
-                    }}
-                  />
-                </div>
-                <p>
-                  Fictional costs for learning. Every upgrade has a trade-off.
-                </p>
-              </div>
-              <div className="metrics">
-                <div>
-                  <span>WET MASS</span>
-                  <b>
-                    {v.mass}
-                    <small> kg</small>
-                  </b>
-                </div>
-                <div>
-                  <span>PEAK SOLAR</span>
-                  <b>
-                    {v.solar}
-                    <small> W</small>
-                  </b>
-                </div>
-                <div>
-                  <span>DOWNLINK</span>
-                  <b>
-                    {v.downlink}
-                    <small> MiB/s</small>
-                  </b>
-                </div>
-              </div>
-              <button className="primary" onClick={() => setStage("review")}>
-                Review mission <ArrowRight size={18} />
-              </button>
-              <div className="utility">
-                <button onClick={save}>Save design</button>
-                <button onClick={load}>Load saved</button>
-                <button
-                  onClick={() => {
-                    setDesign(balancedDesign);
-                    setNotice(
-                      "Balanced reference loaded. Compare its communications and power needs.",
+                }}
+                onNext={() => {
+                  if (tutorial === 6) {
+                    setTutorial(null);
+                    setPaused(false);
+                    setSpeed(120);
+                    setCelebration(
+                      "FLIGHT SCHOOL COMPLETE · You have the controls.",
                     );
-                  }}
-                >
-                  Load reference ↗
-                </button>
-              </div>
-            </>
-          ) : stage === "review" ? (
-            <>
-              <span className="eyebrow">MISSION READINESS / LP–006</span>
-              <h2>Your flight review.</h2>
-              <p className="lead">
-                Ambition is a starting point. Engineering gets it home.
-              </p>
-              <div className="review-item">
-                <Check />
-                <div>
-                  <h3>Science objective defined</h3>
-                  <p>3 paired polar survey cells received on Earth.</p>
+                    setTimeout(() => setCelebration(""), 4000);
+                  } else {
+                    setTutorial(tutorial + 1);
+                    setTrainingReady(false);
+                  }
+                }}
+              />
+            )}
+            {stage === "build" ? (
+              <>
+                <div className="panel-title">
+                  <div>
+                    <span className="eyebrow">YOUR SPACECRAFT</span>
+                    <h2>Engineer the outcome.</h2>
+                  </div>
+                  <span className="pill">YOUR EXPLORER</span>
                 </div>
-              </div>
-              <div className="review-item">
-                <Check />
-                <div>
-                  <h3>Delivery envelope</h3>
+                <p className="beginner-build-note">
+                  You are building the robot inside the rocket. <b>Payload</b>{" "}
+                  means cameras & sensors. <b>Comms</b> means the antenna that
+                  sends discoveries home.
+                </p>
+                <div className="tabs">
+                  {(Object.keys(catalog) as (keyof typeof catalog)[]).map(
+                    (k) => (
+                      <button
+                        key={k}
+                        className={tab === k ? "selected" : ""}
+                        onClick={() => setTab(k)}
+                      >
+                        {
+                          {
+                            camera: "Payload",
+                            radio: "Comms",
+                            solar: "Power",
+                            battery: "Battery",
+                            storage: "Data",
+                          }[k]
+                        }
+                      </button>
+                    ),
+                  )}
+                </div>
+                <div className="option-list">
+                  {catalog[tab].map((part) => (
+                    <button
+                      key={part.id}
+                      className={
+                        "part " + (design[tab] === part.id ? "chosen" : "")
+                      }
+                      onClick={() => change(tab, part.id)}
+                    >
+                      <span className="part-icon">
+                        {tab === "camera" ? (
+                          <ScanLine />
+                        ) : tab === "radio" ? (
+                          <Radio />
+                        ) : tab === "solar" ? (
+                          <Sun />
+                        ) : tab === "battery" ? (
+                          <Shield />
+                        ) : (
+                          <Satellite />
+                        )}
+                      </span>
+                      <div>
+                        <h3>{part.name}</h3>
+                        <p>{part.description}</p>
+                        <span className="part-spec">
+                          {part.mass} KG <b>·</b> ${part.cost}M
+                        </span>
+                      </div>
+                      <span className="radio-circle">
+                        {design[tab] === part.id && <Check size={12} />}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <div className="included">
+                  <Check size={14} /> Included: flight bus · hydrogen sensor ·
+                  propulsion reserve
+                </div>
+                <div className="field-row">
+                  <label>
+                    MISSION ORBIT
+                    <select
+                      value={design.orbit}
+                      onChange={(ev) => change("orbit", ev.target.value)}
+                    >
+                      <option value="polar">100 km · Polar survey</option>
+                      <option value="high">300 km · Polar survey</option>
+                      <option value="equatorial">100 km · Equatorial</option>
+                    </select>
+                  </label>
+                  <label>
+                    LAUNCH SERVICE
+                    <select
+                      value={design.launcher}
+                      onChange={(ev) => change("launcher", ev.target.value)}
+                    >
+                      <option value="light">Light · 100 kg · $18M</option>
+                      <option value="heavy">Heavy · 150 kg · $24M</option>
+                    </select>
+                  </label>
+                </div>
+                <div className="budget">
+                  <div>
+                    <span>MISSION BUDGET</span>
+                    <b className={v.cost > 40 ? "danger" : ""}>
+                      ${fmt(v.cost)}
+                      <small> / $40M</small>
+                    </b>
+                  </div>
+                  <div className="bar">
+                    <i
+                      style={{
+                        width: `${Math.min(100, (v.cost / 40) * 100)}%`,
+                        background: v.cost > 40 ? "var(--red)" : undefined,
+                      }}
+                    />
+                  </div>
                   <p>
-                    {v.mass} kg / {design.launcher === "light" ? 100 : 150} kg ·
-                    ${fmt(v.cost)}M allocation used.
+                    Fictional costs for learning. Every upgrade has a trade-off.
                   </p>
                 </div>
-              </div>
-              {r.blockers.map((x) => (
-                <div className="review-item bad" key={x}>
-                  <AlertTriangle />
-                  <p>{x}</p>
+                <div className="metrics">
+                  <div>
+                    <span>WET MASS</span>
+                    <b>
+                      {v.mass}
+                      <small> kg</small>
+                    </b>
+                  </div>
+                  <div>
+                    <span>PEAK SOLAR</span>
+                    <b>
+                      {v.solar}
+                      <small> W</small>
+                    </b>
+                  </div>
+                  <div>
+                    <span>DOWNLINK</span>
+                    <b>
+                      {v.downlink}
+                      <small> MiB/s</small>
+                    </b>
+                  </div>
                 </div>
-              ))}
-              {r.risks.map((x) => (
-                <div className="review-item warn" key={x}>
-                  <AlertTriangle />
-                  <p>{x}</p>
-                </div>
-              ))}
-              <div className="callout">
-                <b>Contracted delivery</b>
-                <p>
-                  Your service delivers the spacecraft into the selected lunar
-                  orbit. This prototype models orbital operations; launch and
-                  transfer are abstracted.
-                </p>
-              </div>
-              <button
-                className="primary"
-                disabled={!!r.blockers.length}
-                onClick={launch}
-              >
-                Commit & deploy <ArrowUpRight size={18} />
-              </button>
-              <button className="secondary" onClick={() => setStage("build")}>
-                Return to assembly
-              </button>
-            </>
-          ) : stage === "flight" ? (
-            <>
-              <div className="panel-title">
-                <div>
-                  <span className="eyebrow">LIVE TELEMETRY</span>
-                  <h2>Stay ahead of the orbit.</h2>
-                </div>
-                <span className="pill">
-                  <span className="live-dot" /> LIVE
-                </span>
-              </div>
-              <FlightMap design={design} state={s} />
-              <div className="flight-director">
-                <span>FLIGHT DIRECTOR</span>
-                <b>
-                  {s.slew > 0
-                    ? `Turning spacecraft… ${Math.ceil(s.slew)}s`
-                    : s.energy < v.capacity * 0.2
-                      ? "Battery low. Charge before the next eclipse."
-                      : s.full
-                        ? "Recorder full. Downlink to free storage."
-                        : e.target
-                          ? "Survey window open. Aim instruments at the surface."
-                          : queued(s) > 0 && e.contact
-                            ? "Earth is in view. Bring your evidence home."
-                            : "Coast to the next survey window, or prepare your power reserve."}
-                </b>
-              </div>
-              <div className="flight-status">
-                <span>ORBIT {e.orbit} / 6</span>
-                <b>{time(s.t)}</b>
-              </div>
-              <div className="progress">
-                <i
-                  style={{ width: `${(s.t / (period(design) * 6)) * 100}%` }}
-                />
-              </div>
-              <div className="telemetry">
-                <Meter
-                  label="BATTERY"
-                  value={`${fmt(s.energy)} / ${v.capacity} Wh`}
-                  percent={(s.energy / v.capacity) * 100}
-                  warning={s.energy < v.capacity * 0.2}
-                />
-                <Meter
-                  label="RECORDER"
-                  value={`${fmt(queued(s))} / ${v.storage} MiB`}
-                  percent={(queued(s) / v.storage) * 100}
-                  warning={queued(s) > v.storage * 0.85}
-                />
-              </div>
-              <div className="link-status">
-                <span className={e.contact ? "ok" : ""}>
-                  ● {e.contact ? "EARTH IN VIEW" : "MOON OCCULTATION"}
-                </span>
-                <span className={e.target ? "ok" : ""}>
-                  ● {e.target ? "TARGET WINDOW" : "OUTSIDE TARGET"}
-                </span>
-              </div>
-              <div className="commands">
-                {(
-                  [
-                    {
-                      id: "observe",
-                      icon: ScanLine,
-                      label: "Observe",
-                      sub: "Point instrument at target",
-                    },
-                    {
-                      id: "downlink",
-                      icon: Radio,
-                      label: "Downlink",
-                      sub: "Point antenna toward Earth",
-                    },
-                    {
-                      id: "charge",
-                      icon: Sun,
-                      label: "Charge",
-                      sub: "Face solar wings toward Sun",
-                    },
-                    {
-                      id: "safe",
-                      icon: Shield,
-                      label: "Safe mode",
-                      sub: "Reduce load to 5 W",
-                    },
-                  ] as const
-                ).map((m, i) => (
+                <button className="primary" onClick={() => setStage("review")}>
+                  Review mission <ArrowRight size={18} />
+                </button>
+                <div className="utility">
+                  <button onClick={save}>Save design</button>
+                  <button onClick={load}>Load saved</button>
                   <button
-                    key={m.id}
-                    onClick={() => mode(m.id)}
-                    className={s.mode === m.id ? "engaged" : ""}
+                    onClick={() => {
+                      setDesign(balancedDesign);
+                      setNotice(
+                        "Balanced reference loaded. Compare its communications and power needs.",
+                      );
+                    }}
                   >
-                    <m.icon size={19} />
-                    <span>
-                      <b>{m.label}</b>
-                      <small>{m.sub}</small>
-                    </span>
-                    <kbd>{i + 1}</kbd>
+                    Load reference ↗
                   </button>
-                ))}
-              </div>
-              <button
-                className="priority-data"
-                onClick={() => {
-                  prioritizeDiscoveries(s);
-                  setNotice(
-                    "Unique, not-yet-received measurements are now at the front of the downlink queue. No data was discarded.",
-                  );
-                  setTick((n) => n + 1);
-                }}
-              >
-                ✦ Prioritize discoveries{" "}
-                <small>Send new evidence before repeated observations</small>
-              </button>
-              <div className="coast-actions">
-                <button
-                  onClick={() =>
-                    coast(e.target && queued(s) > 0 ? "contact" : "target")
-                  }
-                >
-                  ⏩ Coast to{" "}
-                  {e.target && queued(s) > 0
-                    ? "Earth contact"
-                    : "survey window"}
-                </button>
-                <span>Resources keep running</span>
-              </div>
-              <div className="transport">
-                <button
-                  aria-label={paused ? "Resume" : "Pause"}
-                  onClick={() => setPaused(!paused)}
-                >
-                  {paused ? <Play size={16} /> : <Pause size={16} />}
-                </button>
-                <select
-                  aria-label="Simulation speed"
-                  value={speed}
-                  onChange={(ev) => setSpeed(+ev.target.value)}
-                >
-                  {[1, 30, 60, 120, 600].map((x) => (
-                    <option value={x} key={x}>
-                      {x}× TIME
-                    </option>
-                  ))}
-                </select>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={auto}
-                    onChange={(ev) => setAuto(ev.target.checked)}
-                  />{" "}
-                  Auto operator
-                </label>
-              </div>
-              <div className="survey-grid" aria-label="Received science map">
-                {Array.from({ length: 24 }, (_, i) => (
-                  <span
-                    key={i}
-                    className={
-                      s.received[`${i}-proxy`] && s.received[`${i}-context`]
-                        ? "complete"
-                        : s.received[`${i}-proxy`] || s.received[`${i}-context`]
-                          ? "partial"
-                          : ""
-                    }
-                    title={`Cell ${i}: ${s.received[`${i}-proxy`] && s.received[`${i}-context`] ? "paired evidence received" : "incomplete"}`}
-                  >
-                    {i.toString().padStart(2, "0")}
-                  </span>
-                ))}
-              </div>
-              <div className="science-count">
-                <b>
-                  {sc.cells}
-                  <small> / 3 CELLS</small>
-                </b>
-                <span>PAIRED EVIDENCE RECEIVED</span>
-              </div>
-              <div className="event-log" aria-live="polite">
-                {s.events
-                  .slice(-3)
-                  .reverse()
-                  .map((x, i) => (
-                    <p key={x.t + "-" + i} className={x.kind}>
-                      <time>{time(x.t)}</time>
-                      {x.message}
-                    </p>
-                  ))}
-              </div>
-              <button
-                className="text-button"
-                onClick={() => {
-                  s.ended = true;
-                  setStage("report");
-                  setPaused(true);
-                }}
-              >
-                {sc.cells >= 3
-                  ? "✓ Bring it home — complete mission"
-                  : "End mission & inspect results →"}
-              </button>
-            </>
-          ) : (
-            <>
-              <span className="eyebrow">POST-MISSION ANALYSIS</span>
-              <h2>
-                {sc.cells >= 3
-                  ? "Evidence, delivered."
-                  : "A lesson from the Moon."}
-              </h2>
-              <div className="mission-medals">
-                <span>
-                  {sc.cells >= 3 ? "🏅 MISSION ACCOMPLISHED" : "🛰 EXPLORER"}
-                </span>
-                {s.sent > 0 && s.sent / Math.max(1, s.generated) > 0.9 && (
-                  <span>📡 CLEAN DOWNLINK</span>
-                )}
-                {v.cost <= 38 && sc.cells >= 3 && <span>✦ RESOURCEFUL</span>}
-              </div>
-              <div className="report-score">
-                <b>
-                  {sc.score}
-                  <small>/100</small>
-                </b>
-                <span>
-                  {sc.cells >= 3
-                    ? "OBJECTIVE ACHIEVED"
-                    : "OBJECTIVE INCOMPLETE"}
-                </span>
-              </div>
-              <p className="score-explainer">
-                Score rewards completed coverage plus received image detail.
-                Three context cells earn 85; high-detail evidence can add a
-                bonus. Only delivered evidence counts.
-              </p>
-              <div className="report-stats">
-                <div>
-                  <span>GENERATED</span>
-                  <b>{fmt(s.generated)} MiB</b>
                 </div>
-                <div>
-                  <span>RECEIVED</span>
-                  <b>{fmt(s.sent)} MiB</b>
-                </div>
-                <div>
-                  <span>STILL ONBOARD</span>
-                  <b>{fmt(queued(s))} MiB</b>
-                </div>
-                <div>
-                  <span>PAIRED CELLS</span>
-                  <b>{sc.cells} / 3</b>
-                </div>
-              </div>
-              <div className="callout">
-                <b>What shaped the outcome?</b>
-                <p>
-                  {design.orbit === "equatorial"
-                    ? "Your orbit never crossed the polar target. Instruments cannot compensate for missing coverage."
-                    : queued(s) > 10
-                      ? `${fmt(queued(s))} MiB remained aboard. More downlink time or higher throughput could help; rerun to test it.`
-                      : sc.cells >= 3
-                        ? "Your operating plan returned complementary evidence. Compare quality, cost and energy margins on the next run."
-                        : "The objective needs both hydrogen-proxy and context packets received. Check targeting, pointing, energy and downlink time."}
+              </>
+            ) : stage === "review" ? (
+              <>
+                <span className="eyebrow">MISSION READINESS / LP–006</span>
+                <h2>Your flight review.</h2>
+                <p className="lead">
+                  Ambition is a starting point. Engineering gets it home.
                 </p>
-              </div>
-              {previous && (
-                <div className="comparison">
-                  <span>PREVIOUS RUN → THIS RUN</span>
-                  <b>
-                    {previous.cells} → {sc.cells} paired cells
-                  </b>
-                  <small>
-                    ${previous.cost}M → ${v.cost}M · Hardware and operating
-                    choices may differ.
-                  </small>
-                </div>
-              )}
-              <div className="event-log">
-                {s.events
-                  .filter((x) => x.kind === "warning")
-                  .slice(-3)
-                  .map((x, i) => (
-                    <p key={i} className="warning">
-                      <time>{time(x.t)}</time>
-                      {x.message}
+                <div className="review-item">
+                  <Check />
+                  <div>
+                    <h3>Science objective defined</h3>
+                    <p>
+                      Pictures + sensor readings received from 3 different
+                      areas.
                     </p>
+                  </div>
+                </div>
+                <div className="review-item">
+                  <Check />
+                  <div>
+                    <h3>Delivery envelope</h3>
+                    <p>
+                      {v.mass} kg / {design.launcher === "light" ? 100 : 150} kg
+                      · ${fmt(v.cost)}M allocation used.
+                    </p>
+                  </div>
+                </div>
+                {r.blockers.map((x) => (
+                  <div className="review-item bad" key={x}>
+                    <AlertTriangle />
+                    <p>{x}</p>
+                  </div>
+                ))}
+                {r.risks.map((x) => (
+                  <div className="review-item warn" key={x}>
+                    <AlertTriangle />
+                    <p>{x}</p>
+                  </div>
+                ))}
+                <div className="callout">
+                  <b>First, we launch from Earth.</b>
+                  <p>
+                    You will start the rocket engines and separate the empty
+                    booster. Then the launch service guides the rest of the
+                    journey and places your explorer around the Moon.
+                  </p>
+                </div>
+                <button
+                  className="primary"
+                  disabled={!!r.blockers.length}
+                  onClick={launch}
+                >
+                  Go to launchpad <ArrowUpRight size={18} />
+                </button>
+                <button className="secondary" onClick={() => setStage("build")}>
+                  Return to assembly
+                </button>
+              </>
+            ) : stage === "flight" ? (
+              <>
+                <div className="panel-title">
+                  <div>
+                    <span className="eyebrow">LIVE TELEMETRY</span>
+                    <h2>Stay ahead of the orbit.</h2>
+                  </div>
+                  <span className="pill">
+                    <span className="live-dot" /> LIVE
+                  </span>
+                </div>
+                <FlightMap design={design} state={s} />
+                <div className="flight-director">
+                  <span>FLIGHT DIRECTOR</span>
+                  <b>
+                    {s.slew > 0
+                      ? `Turning spacecraft… ${Math.ceil(s.slew)}s`
+                      : s.energy < v.capacity * 0.2
+                        ? "Battery low. Charge before the next eclipse."
+                        : s.full
+                          ? "Recorder full. Downlink to free storage."
+                          : e.target
+                            ? "Survey window open. Aim instruments at the surface."
+                            : queued(s) > 0 && e.contact
+                              ? "Earth is in view. Bring your evidence home."
+                              : "Coast to the next survey window, or prepare your power reserve."}
+                  </b>
+                </div>
+                <div className="flight-status">
+                  <span>ORBIT {e.orbit} / 6</span>
+                  <b>{time(s.t)}</b>
+                </div>
+                <div className="progress">
+                  <i
+                    style={{ width: `${(s.t / (period(design) * 6)) * 100}%` }}
+                  />
+                </div>
+                <div className="telemetry">
+                  <Meter
+                    label="BATTERY"
+                    value={`${fmt(s.energy)} / ${v.capacity} Wh`}
+                    percent={(s.energy / v.capacity) * 100}
+                    warning={s.energy < v.capacity * 0.2}
+                  />
+                  <Meter
+                    label="RECORDER"
+                    value={`${fmt(queued(s))} / ${v.storage} MiB`}
+                    percent={(queued(s) / v.storage) * 100}
+                    warning={queued(s) > v.storage * 0.85}
+                  />
+                </div>
+                <div className="link-status">
+                  <span className={e.contact ? "ok" : ""}>
+                    ● {e.contact ? "EARTH IN VIEW" : "MOON OCCULTATION"}
+                  </span>
+                  <span className={e.target ? "ok" : ""}>
+                    ● {e.target ? "TARGET WINDOW" : "OUTSIDE TARGET"}
+                  </span>
+                </div>
+                <div className="commands">
+                  {(
+                    [
+                      {
+                        id: "observe",
+                        icon: ScanLine,
+                        label: "Observe",
+                        sub: "Take pictures & sensor readings",
+                      },
+                      {
+                        id: "downlink",
+                        icon: Radio,
+                        label: "Downlink",
+                        sub: "Send discoveries to Earth",
+                      },
+                      {
+                        id: "charge",
+                        icon: Sun,
+                        label: "Charge",
+                        sub: "Use sunlight to refill battery",
+                      },
+                      {
+                        id: "safe",
+                        icon: Shield,
+                        label: "Safe mode",
+                        sub: "Reduce load to 5 W",
+                      },
+                    ] as const
+                  ).map((m, i) => (
+                    <button
+                      key={m.id}
+                      onClick={() => mode(m.id)}
+                      className={s.mode === m.id ? "engaged" : ""}
+                    >
+                      <m.icon size={19} />
+                      <span>
+                        <b>{m.label}</b>
+                        <small>{m.sub}</small>
+                      </span>
+                      <kbd>{i + 1}</kbd>
+                    </button>
                   ))}
-              </div>
-              <button className="primary" onClick={redesign}>
-                Redesign & fly again <RotateCcw size={17} />
-              </button>
-              <button className="secondary" onClick={benchmark}>
-                Compute automated comparison
-              </button>
-              <button className="text-button" onClick={download}>
-                <Download size={14} /> Export mission report
-              </button>
-            </>
-          )}
-        </aside>
-      </main>
+                </div>
+                <button
+                  className="priority-data"
+                  onClick={() => {
+                    prioritizeDiscoveries(s);
+                    setNotice(
+                      "Unique, not-yet-received measurements are now at the front of the downlink queue. No data was discarded.",
+                    );
+                    setTick((n) => n + 1);
+                  }}
+                >
+                  ✦ Prioritize discoveries{" "}
+                  <small>Send new evidence before repeated observations</small>
+                </button>
+                <div className="coast-actions">
+                  <button
+                    onClick={() =>
+                      coast(e.target && queued(s) > 0 ? "contact" : "target")
+                    }
+                  >
+                    ⏩ Coast to{" "}
+                    {e.target && queued(s) > 0
+                      ? "Earth contact"
+                      : "survey window"}
+                  </button>
+                  <span>Resources keep running</span>
+                </div>
+                <div className="transport">
+                  <button
+                    aria-label={paused ? "Resume" : "Pause"}
+                    onClick={() => setPaused(!paused)}
+                  >
+                    {paused ? <Play size={16} /> : <Pause size={16} />}
+                  </button>
+                  <select
+                    aria-label="Simulation speed"
+                    value={speed}
+                    onChange={(ev) => setSpeed(+ev.target.value)}
+                  >
+                    {[1, 30, 60, 120, 600].map((x) => (
+                      <option value={x} key={x}>
+                        {x}× TIME
+                      </option>
+                    ))}
+                  </select>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={auto}
+                      onChange={(ev) => setAuto(ev.target.checked)}
+                    />{" "}
+                    Auto operator
+                  </label>
+                </div>
+                <div className="survey-grid" aria-label="Received science map">
+                  {Array.from({ length: 24 }, (_, i) => (
+                    <span
+                      key={i}
+                      className={
+                        s.received[`${i}-proxy`] && s.received[`${i}-context`]
+                          ? "complete"
+                          : s.received[`${i}-proxy`] ||
+                              s.received[`${i}-context`]
+                            ? "partial"
+                            : ""
+                      }
+                      title={`Cell ${i}: ${s.received[`${i}-proxy`] && s.received[`${i}-context`] ? "paired evidence received" : "incomplete"}`}
+                    >
+                      {i.toString().padStart(2, "0")}
+                    </span>
+                  ))}
+                </div>
+                <div className="science-count">
+                  <b>
+                    {sc.cells}
+                    <small> / 3 CELLS</small>
+                  </b>
+                  <span>PAIRED EVIDENCE RECEIVED</span>
+                </div>
+                <div className="event-log" aria-live="polite">
+                  {s.events
+                    .slice(-3)
+                    .reverse()
+                    .map((x, i) => (
+                      <p key={x.t + "-" + i} className={x.kind}>
+                        <time>{time(x.t)}</time>
+                        {x.message}
+                      </p>
+                    ))}
+                </div>
+                <button
+                  className="text-button"
+                  onClick={() => {
+                    s.ended = true;
+                    setStage("report");
+                    setPaused(true);
+                  }}
+                >
+                  {sc.cells >= 3
+                    ? "✓ Bring it home — complete mission"
+                    : "End mission & inspect results →"}
+                </button>
+              </>
+            ) : (
+              <>
+                <span className="eyebrow">POST-MISSION ANALYSIS</span>
+                <h2>
+                  {sc.cells >= 3
+                    ? "Evidence, delivered."
+                    : "A lesson from the Moon."}
+                </h2>
+                <div className="mission-medals">
+                  <span>
+                    {sc.cells >= 3 ? "🏅 MISSION ACCOMPLISHED" : "🛰 EXPLORER"}
+                  </span>
+                  {s.sent > 0 && s.sent / Math.max(1, s.generated) > 0.9 && (
+                    <span>📡 CLEAN DOWNLINK</span>
+                  )}
+                  {v.cost <= 38 && sc.cells >= 3 && <span>✦ RESOURCEFUL</span>}
+                </div>
+                <div className="report-score">
+                  <b>
+                    {sc.score}
+                    <small>/100</small>
+                  </b>
+                  <span>
+                    {sc.cells >= 3
+                      ? "OBJECTIVE ACHIEVED"
+                      : "OBJECTIVE INCOMPLETE"}
+                  </span>
+                </div>
+                <p className="score-explainer">
+                  Score rewards completed coverage plus received image detail.
+                  Three context cells earn 85; high-detail evidence can add a
+                  bonus. Only delivered evidence counts.
+                </p>
+                <div className="report-stats">
+                  <div>
+                    <span>GENERATED</span>
+                    <b>{fmt(s.generated)} MiB</b>
+                  </div>
+                  <div>
+                    <span>RECEIVED</span>
+                    <b>{fmt(s.sent)} MiB</b>
+                  </div>
+                  <div>
+                    <span>STILL ONBOARD</span>
+                    <b>{fmt(queued(s))} MiB</b>
+                  </div>
+                  <div>
+                    <span>PAIRED CELLS</span>
+                    <b>{sc.cells} / 3</b>
+                  </div>
+                </div>
+                <div className="callout">
+                  <b>What shaped the outcome?</b>
+                  <p>
+                    {design.orbit === "equatorial"
+                      ? "Your orbit never crossed the polar target. Instruments cannot compensate for missing coverage."
+                      : queued(s) > 10
+                        ? `${fmt(queued(s))} MiB remained aboard. More downlink time or higher throughput could help; rerun to test it.`
+                        : sc.cells >= 3
+                          ? "Your pictures and sensor readings arrived together on Earth. Try changing equipment or your operating choices on the next flight."
+                          : "The objective needs both hydrogen-proxy and context packets received. Check targeting, pointing, energy and downlink time."}
+                  </p>
+                </div>
+                {previous && (
+                  <div className="comparison">
+                    <span>PREVIOUS RUN → THIS RUN</span>
+                    <b>
+                      {previous.cells} → {sc.cells} paired cells
+                    </b>
+                    <small>
+                      ${previous.cost}M → ${v.cost}M · Hardware and operating
+                      choices may differ.
+                    </small>
+                  </div>
+                )}
+                <div className="event-log">
+                  {s.events
+                    .filter((x) => x.kind === "warning")
+                    .slice(-3)
+                    .map((x, i) => (
+                      <p key={i} className="warning">
+                        <time>{time(x.t)}</time>
+                        {x.message}
+                      </p>
+                    ))}
+                </div>
+                <button className="primary" onClick={redesign}>
+                  Redesign & fly again <RotateCcw size={17} />
+                </button>
+                <button className="secondary" onClick={benchmark}>
+                  Compute automated comparison
+                </button>
+                <button className="text-button" onClick={download}>
+                  <Download size={14} /> Export mission report
+                </button>
+              </>
+            )}
+          </aside>
+        </main>
+      )}
       <footer>
         <span>
           <span className="live-dot" /> ALL SYSTEMS EXPLAINABLE
@@ -1046,51 +1085,13 @@ function App() {
         </div>
       )}
       {brief && (
-        <div className="overlay">
-          <div className="modal briefing">
-            <span className="eyebrow">INCOMING / LUNAR SCIENCE TEAM</span>
-            <div className="brief-symbol">
-              <Satellite size={48} />
-            </div>
-            <h2>
-              The Moon is waiting.
-              <br />
-              <em>What will you send?</em>
-            </h2>
-            <p>
-              We need evidence to prioritize the next south-polar survey. You
-              have <b>$40 million</b>, six orbits, and a spacecraft of your own
-              design.
-            </p>
-            <p>
-              A better camera means more data. A bigger antenna means more
-              power. Your job is to make the whole mission work—and bring the
-              evidence home.
-            </p>
-            <div className="brief-steps">
-              <span>01 BUILD</span>
-              <ArrowRight size={15} />
-              <span>02 OPERATE</span>
-              <ArrowRight size={15} />
-              <span>03 LEARN</span>
-            </div>
-            <button className="primary" onClick={startTutorial}>
-              Start guided first mission <ArrowRight size={18} />
-            </button>
-            <button
-              className="secondary"
-              onClick={() => {
-                setBrief(false);
-                localStorage.setItem("ols-intro-v2", "1");
-              }}
-            >
-              Enter the assembly bay <ArrowRight size={18} />
-            </button>
-            <small>
-              Guided first mission · Manual control · No account required
-            </small>
-          </div>
-        </div>
+        <MissionIntro
+          onGuided={startTutorial}
+          onFree={() => {
+            setBrief(false);
+            localStorage.setItem("ols-intro-v3", "1");
+          }}
+        />
       )}
       {sources && (
         <div className="overlay">

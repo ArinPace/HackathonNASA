@@ -1,13 +1,13 @@
 import { Check, ArrowRight, X } from "lucide-react";
 const lessons = [
   {
-    title: "Give the mission a camera it can support.",
-    body: "In Payload, select Context imager. It generates one fifth of the detailed camera’s data, leaving more room to maneuver.",
+    title: "Start with your robot’s eyes.",
+    body: "Payload means the cameras and sensors carried by your explorer. Pick Context imager: a simple survey camera that takes pictures without filling storage too quickly.",
     task: "Select Context imager in Payload.",
   },
   {
-    title: "Build a route home for your discoveries.",
-    body: "Open Comms and install the High-gain dish. It costs more and draws more power, but transmits sixteen times faster.",
+    title: "Give your robot a connection home.",
+    body: "Comms means communications. Open it and pick High-gain dish: a bigger antenna that can send your pictures back to Earth faster.",
     task: "Comms → High-gain dish.",
   },
   {
@@ -16,18 +16,18 @@ const lessons = [
     task: "Press Review mission.",
   },
   {
-    title: "You are cleared for lunar deployment.",
-    body: "The launch service delivers you to lunar orbit. You will control the science, antenna and solar pointing yourself.",
-    task: "Press Commit & deploy.",
+    title: "Time for the rocket ride.",
+    body: "Go to the launchpad, start the countdown and drop the empty booster when prompted. Then follow the guided journey to the Moon.",
+    task: "Go to launchpad → countdown → separate booster → travel to the Moon.",
   },
   {
     title: "Your first survey pass.",
-    body: "We have coasted to the edge of the real target window. Press Observe (1). Watch the recorder fill; we will pause after your first observations.",
+    body: "You are circling the Moon. A target window is a chance to see a place we want to study. Press Observe (1) to take pictures and readings. We pause after your first discoveries.",
     task: "Press Observe. Collect at least 8 MiB.",
   },
   {
-    title: "Stored aboard is not delivered.",
-    body: "Your evidence is still on the spacecraft. Press Downlink (2) while Earth is in view. Paired evidence counts only after both measurements arrive.",
+    title: "Send your first discovery home.",
+    body: "Your pictures are still on the robot. Downlink just means send them home. Press Downlink (2) while Earth is in view; a discovery counts when its picture and sensor reading arrive.",
     task: "Press Downlink. Return your first paired cell.",
   },
   {
