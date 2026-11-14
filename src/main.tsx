@@ -99,19 +99,24 @@ function App() {
     if (stage !== "flight" || paused) return;
     const id = setInterval(() => {
       const st = state.current;
-      if (auto) {
-        const en = env(design, st.t);
-        modeQuiet(
-          st.energy < v.capacity * 0.2
-            ? "charge"
-            : en.contact && queued(st) > 1
-              ? "downlink"
-              : en.target && queued(st) < v.storage - 3
-                ? "observe"
-                : "charge",
-        );
+      let remaining = speed * 0.1;
+      while (remaining > 1e-8 && !st.ended) {
+        if (auto && Math.abs(st.t / 10 - Math.round(st.t / 10)) < 1e-7) {
+          const en = env(design, st.t);
+          modeQuiet(
+            st.energy < v.capacity * 0.2
+              ? "charge"
+              : en.contact && queued(st) > 1
+                ? "downlink"
+                : en.target && queued(st) < v.storage - 3
+                  ? "observe"
+                  : "charge",
+          );
+        }
+        const step = Math.min(remaining, 10 - (st.t % 10));
+        advance(st, design, step);
+        remaining -= step;
       }
-      advance(st, design, speed * 0.1);
       setTick((n) => n + 1);
       if (st.ended) {
         setPaused(true);
