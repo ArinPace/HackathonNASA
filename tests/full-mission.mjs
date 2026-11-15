@@ -9,6 +9,7 @@ const browser = await chromium.launch({
 const page = await browser.newPage({ viewport: { width: 1440, height: 1060 } });
 await page.clock.install();
 await page.goto("http://127.0.0.1:5173");
+await page.getByRole("button", { name: /Lunar sandbox/ }).click();
 await page.getByRole("button", { name: "Enter the assembly bay" }).click();
 await page.getByRole("button", { name: "Load reference" }).click();
 await page.getByRole("button", { name: "Review mission" }).click();

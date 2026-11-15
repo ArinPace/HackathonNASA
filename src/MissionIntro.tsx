@@ -12,9 +12,11 @@ import {
 export function MissionIntro({
   onGuided,
   onFree,
+  career = false,
 }: {
   onGuided: () => void;
   onFree: () => void;
+  career?: boolean;
 }) {
   const [page, setPage] = useState(0);
   return (
@@ -45,14 +47,18 @@ export function MissionIntro({
         {page === 0 ? (
           <>
             <h2>
-              Send a robot to the Moon.
+              {career ? "Start with a satellite." : "Send a robot to the Moon."}
               <br />
-              <em>Bring its discoveries home.</em>
+              <em>
+                {career
+                  ? "Earn your way to Mars."
+                  : "Bring its discoveries home."}
+              </em>
             </h2>
             <p>
-              You are in charge of a small robot explorer. It has no people
-              aboard. You choose its equipment, launch it on a rocket, then tell
-              it what to do near the Moon.
+              {career
+                ? "You start with a small robot satellite near Earth. Learn power, radio, flying and landing across 18 assignments. Every completed assignment earns XP and opens the next step."
+                : "You are in charge of a small robot explorer. It has no people aboard. You choose its equipment, launch it on a rocket, then tell it what to do near the Moon."}
             </p>
             <div className="intro-distinction">
               <div>
@@ -67,15 +73,26 @@ export function MissionIntro({
                 <Satellite />
                 <b>The explorer does the work.</b>
                 <p>
-                  After the ride, it circles the Moon, takes pictures and sends
-                  information back to Earth.
+                  {career
+                    ? "First near Earth, later the Moon and Mars: your explorer performs the assignment and sends information home."
+                    : "After the ride, it circles the Moon, takes pictures and sends information back to Earth."}
                 </p>
               </div>
             </div>
             <p className="intro-goal">
-              <b>Your goal:</b> send pictures AND sensor readings home from
-              three different survey areas. A picture stuck on the robot does
-              not count!
+              {career ? (
+                <>
+                  <b>Your first goal:</b> deploy a small satellite and send a
+                  test signal home. Later assignments add cameras, docking, Moon
+                  landings and Mars. Complete each goal to unlock the next step.
+                </>
+              ) : (
+                <>
+                  <b>Your goal:</b> send pictures AND sensor readings home from
+                  three different survey areas. A picture stuck on the robot
+                  does not count!
+                </>
+              )}
             </p>
           </>
         ) : page === 1 ? (
@@ -148,8 +165,9 @@ export function MissionIntro({
               <li>
                 <b>Travel</b>
                 <span>
-                  The launch service guides the trip to the Moon in a short
-                  animated sequence.
+                  {career
+                    ? "The service guides you to the selected destination. A launch certificate lets you skip repeated launches after your first."
+                    : "The launch service guides the trip to the Moon in a short animated sequence."}
                 </span>
               </li>
               <li>
@@ -161,9 +179,10 @@ export function MissionIntro({
               </li>
             </ol>
             <p className="intro-goal">
-              <b>What is an orbit?</b> A path around a world. Our explorer
-              circles the Moon; useful places and Earth come in and out of view.
-              We pause the first mission to explain what to do.
+              <b>What is an orbit?</b> A path around a world.{" "}
+              {career
+                ? "Your first satellite circles Earth. Later you apply the same mission loop farther away, with more demanding tasks and tighter margins."
+                : "Our explorer circles the Moon; useful places and Earth come in and out of view. We pause the first mission to explain what to do."}
             </p>
           </>
         )}

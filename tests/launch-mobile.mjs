@@ -10,6 +10,7 @@ const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 await page.goto("http://127.0.0.1:5173");
+await page.getByRole("button", { name: /Lunar sandbox/ }).click();
 await page.screenshot({
   path: "/private/tmp/ols-basics-mobile.png",
   fullPage: true,
@@ -27,7 +28,13 @@ await page.getByRole("checkbox", { name: /Flight assistance/ }).check();
 await page.getByRole("button", { name: "Start countdown" }).click();
 await page.getByRole("button", { name: "Pause", exact: true }).click();
 await page.waitForTimeout(1500);
-assert.equal(await page.getByRole('region',{name:'Rocket launch'}).getByText("4", { exact: true }).isVisible(), true);
+assert.equal(
+  await page
+    .getByRole("region", { name: "Rocket launch" })
+    .getByText("4", { exact: true })
+    .isVisible(),
+  true,
+);
 await page.screenshot({
   path: "/private/tmp/ols-launch-mobile.png",
   fullPage: true,

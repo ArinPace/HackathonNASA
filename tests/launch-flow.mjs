@@ -1,6 +1,10 @@
 import { expect } from "@playwright/test";
-export async function flyLaunch(page, { clock = false, capture = false } = {}) {
-  await page.getByRole("button", { name: "Go to launchpad" }).click();
+export async function flyLaunch(
+  page,
+  { clock = false, capture = false, career = false } = {},
+) {
+  if (!career)
+    await page.getByRole("button", { name: "Go to launchpad" }).click();
   await page.getByRole("button", { name: "Start countdown" }).click();
   if (capture) {
     await page.waitForTimeout(5500);
@@ -18,7 +22,7 @@ export async function flyLaunch(page, { clock = false, capture = false } = {}) {
   await separate.click();
   if (clock) await page.clock.runFor(15000);
   await page
-    .getByRole("button", { name: "Set course for the Moon" })
+    .getByRole("button", { name: /Set course for/ })
     .click({ timeout: 60000 });
   if (clock) await page.clock.runFor(8000);
   await page

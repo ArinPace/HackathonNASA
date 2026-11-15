@@ -43,6 +43,7 @@ import "./style.css";
 import { Tutorial } from "./Tutorial";
 import { MissionIntro } from "./MissionIntro";
 import { LaunchScreen } from "./LaunchScreen";
+import { Campaign } from "./campaign/Campaign";
 import { FlightMap, nextWindow } from "./FlightMap";
 const fmt = (n: number) =>
   n.toLocaleString(undefined, { maximumFractionDigits: 1 });
@@ -55,6 +56,7 @@ const time = (s: number) =>
     .toString()
     .padStart(2, "0")}`;
 function App() {
+  const [careerOpen, setCareerOpen] = useState(true);
   const [design, setDesign] = useState<Design>(initialDesign),
     [stage, setStage] = useState<
       "build" | "review" | "launch" | "flight" | "report"
@@ -166,7 +168,7 @@ function App() {
     setTick((n) => n + 1);
   };
   useEffect(() => {
-    if (stage !== "flight" || paused || sources || brief) return;
+    if (careerOpen || stage !== "flight" || paused || sources || brief) return;
     const id = setInterval(() => {
       const st = state.current;
       let remaining = speed * 0.1;
@@ -206,9 +208,20 @@ function App() {
       command(state.current, m);
     }
     return () => clearInterval(id);
-  }, [stage, paused, speed, auto, design, sources, brief, tutorial]);
+  }, [
+    stage,
+    paused,
+    speed,
+    auto,
+    design,
+    sources,
+    brief,
+    tutorial,
+    careerOpen,
+  ]);
   useEffect(() => {
     const listener = (ev: KeyboardEvent) => {
+      if (careerOpen) return;
       if (ev.key === "Escape") {
         setSources(false);
         return;
@@ -325,6 +338,7 @@ function App() {
     a.click();
     URL.revokeObjectURL(u);
   };
+  if (careerOpen) return <Campaign onSandbox={() => setCareerOpen(false)} />;
   return (
     <div
       className={`app stage-${stage}`}
@@ -345,6 +359,12 @@ function App() {
           <span className="nav-divider">/</span> LUNAR DIVISION
         </nav>
         <div className="header-actions">
+          <button
+            className="text-button tutorial-launch"
+            onClick={() => setCareerOpen(true)}
+          >
+            Career
+          </button>
           <button
             className="text-button basics-button"
             onClick={() => setBrief(true)}

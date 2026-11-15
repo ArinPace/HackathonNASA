@@ -1,5 +1,5 @@
 # One Last Signal
-A playable, original NASA Space Apps 2026 mission-design game. Configure a lunar spacecraft, review constraints, operate six lunar orbits, and compare the evidence returned.
+A playable, original NASA Space Apps 2026 space-mission learning game. Career mode contains six chapters and eighteen progressively harder assignments, plus the original lunar spacecraft-design sandbox.
 
 ## Run
 Node 22+, `npm install`, `npm run dev`. Production: `npm run build`, `npm run preview`. Tests: `npm test`.
@@ -31,3 +31,14 @@ Additional verification: `node tests/tutorial.mjs` covers the guided mission, ma
 
 ## Rocket ride and beginner introduction
 Mission basics now explains the robot, rocket, equipment, orbit and win condition before flight school starts. After design review, Go to launchpad opens a 3D Earth launch with a four-second countdown, exhaust/smoke, clouds, fading sky, booster separation and engine audio (opt-in). Flight assistance holds at empty-booster separation; press Space or Separate booster to continue. Manual throttle and A/D steering affect acceleration/fuel use. The ascent mini-game ends only after the second engine burns and the vehicle reaches 100 km while climbing. A separate guided Moon-travel sequence explains coast and arrival before the explorer begins its existing operations mission.
+
+## Career mode: 6 chapters, 18 assignments
+Each chapter has Training, Operations and Mastery assignments with multiple goals. The path is Satellite -> Earth orbit -> Station assembly/docking -> Moon orbit -> Moon landing -> Mars survey and landing. Harder assignments change actual parameters: moving antenna alignment, low battery/shadow, more required survey areas, smaller storage/battery reserves, narrower docking ports, slower permitted contact speeds, smaller landing zones and reduced fuel. Mars uses weaker illustrative solar/downlink factors and combines an orbital survey with powered descent.
+
+Win conditions are evaluated by the mission models. Successful assignments unlock the next. Stars rate performance; XP increases only for first completion or a higher mastery rating, preventing replay farming. Progress and the reusable launch certificate are saved locally under ols-career-v1. No server or global-competitive verification is claimed. The Lunar sandbox button opens the original detailed builder/tutorial.
+
+The career orbital scenes are analytic 2D schematics, station docking is a simplified local relative-motion exercise, and Moon/Mars landing is a local powered-descent training model. These are playable skill challenges, not full KSP-style orbital rendezvous, atmospheric entry, surface terrain or station construction engines. Launch and transfer retain their documented approximations.
+
+Additional factual constants: JPL https://ssd.jpl.nasa.gov/astro_par.html (Earth GM; Mars-system GM used as a spherical Mars approximation) and https://ssd.jpl.nasa.gov/planets/phys_par.html (mean radii, rounded surface gravity). All mission equipment, XP, synthetic readings, communication rates and balance coefficients are game design inputs.
+
+Tests: npm test covers progression, replay rewards, persistence, resource conservation and completion of every orbital/docking/landing tier under an explicit tested policy. node tests/career-browser.mjs covers first launch and two real career assignments plus reload/mobile checks. node tests/career-maneuvers.mjs uses documented seeded progress fixtures to exercise station docking, Moon descent and the combined Mars mission; fixture unlocks are test setup, not evidence a human completed the entire career.

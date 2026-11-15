@@ -18,6 +18,7 @@ export function LaunchScreen({
   paused,
   onMute,
   onComplete,
+  destination = "moon",
 }: {
   design: Design;
   reduced: boolean;
@@ -25,7 +26,14 @@ export function LaunchScreen({
   paused: boolean;
   onMute: () => void;
   onComplete: () => void;
+  destination?: "earth" | "moon" | "mars";
 }) {
+  const destinationName =
+    destination === "earth"
+      ? "Earth orbit"
+      : destination === "mars"
+        ? "Mars"
+        : "the Moon";
   const state = useRef(newLaunch()),
     [, render] = useState(0),
     [hold, setHold] = useState(false),
@@ -154,7 +162,7 @@ export function LaunchScreen({
         : s.status === "failed"
           ? "The climb did not work. Try again with flight assistance, or more thrust."
           : s.status === "handoff"
-            ? "You reached the edge of space. Next: the guided journey to the Moon."
+            ? "You reached the edge of space. Next: the guided journey to your destination."
             : stageReady
               ? "The booster is nearly empty. Separate it to drop dead weight and start the next engine."
               : s.stage === 2
@@ -174,7 +182,7 @@ export function LaunchScreen({
               <span className="eyebrow">EARTH · LAUNCH COMPLEX 01</span>
               <h1>
                 {s.status === "ready"
-                  ? "Your ride to the Moon."
+                  ? "Your ride to space."
                   : s.status === "countdown"
                     ? "All eyes on the sky."
                     : s.status === "handoff"
@@ -221,12 +229,16 @@ export function LaunchScreen({
         ) : (
           <div className="transfer-scene">
             <span className="eyebrow">
-              GUIDED TRANSFER · THREE DAYS COMPRESSED
+              {destination === "earth"
+                ? "GUIDED ORBIT INSERTION · TIME COMPRESSED"
+                : destination === "mars"
+                  ? "GUIDED TRANSFER · MONTHS COMPRESSED"
+                  : "GUIDED TRANSFER · THREE DAYS COMPRESSED"}
             </span>
             <h1>
               Next stop.
               <br />
-              <em>The Moon.</em>
+              <em>{destinationName}.</em>
             </h1>
             <div className="transfer-path">
               <div className="transfer-earth">
@@ -240,25 +252,36 @@ export function LaunchScreen({
                 />
               </div>
               <div className="transfer-moon">
-                🌕<span>MOON</span>
+                {destination === "earth"
+                  ? "🌍"
+                  : destination === "mars"
+                    ? "🔴"
+                    : "🌕"}
+                <span>
+                  {destination === "earth"
+                    ? "EARTH ORBIT"
+                    : destination === "mars"
+                      ? "MARS"
+                      : "MOON"}
+                </span>
               </div>
             </div>
             <div className="transfer-chapters">
               <span className={travel > 0.1 ? "done" : ""}>01 LEAVE EARTH</span>
               <span className={travel > 0.45 ? "done" : ""}>02 CRUISE</span>
               <span className={travel > 0.85 ? "done" : ""}>
-                03 ENTER LUNAR ORBIT
+                03 ENTER ORBIT
               </span>
             </div>
             <p>
               {travel < 0.3
-                ? "The launch service supplies the speed and direction for the trip."
+                ? "The launch service supplies the speed and direction for this part of the journey."
                 : travel < 0.8
                   ? "Your robot coasts through space. A rocket does not need to keep firing all the way."
-                  : "Arrival burn: the service slows your explorer so it circles the Moon instead of flying past."}
+                  : "Arrival burn: the service adjusts your explorer’s speed so it enters the selected orbit."}
             </p>
             <small>
-              Illustrative travel sequence. Orbital insertion and Earth–Moon
+              Illustrative travel sequence. Orbital insertion and destination
               transfer are guided, not calculated by the ascent mini-game.
             </small>
           </div>
@@ -276,7 +299,7 @@ export function LaunchScreen({
         <p className="launch-explanation">
           {travel === null
             ? subtitle
-            : "The rocket’s job is done. Your robot is now circling the Moon. Take pictures, collect practice sensor readings, and send them home."}
+            : `The rocket’s job is done. Your explorer is now at ${destinationName}. Follow this assignment’s objectives to earn the next unlock.`}
         </p>
         {travel === null ? (
           <>
@@ -375,7 +398,10 @@ export function LaunchScreen({
               </button>
             ) : s.status === "handoff" ? (
               <button className="primary" onClick={() => setTravel(0)}>
-                Set course for the Moon <ArrowRight size={18} />
+                {destination === "moon"
+                  ? "Set course for the Moon"
+                  : `Set course for ${destinationName}`}{" "}
+                <ArrowRight size={18} />
               </button>
             ) : (
               <button
@@ -421,10 +447,17 @@ export function LaunchScreen({
               <div>
                 <span>1</span>
                 <section>
-                  <b>Look at the Moon</b>
+                  <b>
+                    {destination === "earth"
+                      ? "Power up your satellite"
+                      : destination === "mars"
+                        ? "Explore Mars"
+                        : "Look at the Moon"}
+                  </b>
                   <p>
-                    Observe means point the sensors down and collect
-                    discoveries.
+                    {destination === "earth"
+                      ? "Deploy the solar wings, establish a radio link and follow your assignment’s goals."
+                      : "Observe means point the sensors down and collect discoveries."}
                   </p>
                 </section>
               </div>
@@ -450,9 +483,7 @@ export function LaunchScreen({
               disabled={travel < 1}
               onClick={onComplete}
             >
-              {travel < 1
-                ? "Travelling to the Moon…"
-                : "Deploy explorer & take control"}
+              {travel < 1 ? "Travelling…" : "Deploy explorer & take control"}
               <ArrowRight size={17} />
             </button>
             <p className="launch-model-note">

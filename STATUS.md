@@ -15,3 +15,6 @@ Added a seven-step action-gated tutorial, replayable help, event coasting with r
 
 # Beginner and launch revision
 Added a three-part basics introduction, rocket-versus-explorer explanation, plain-language mission goal and command descriptions. Interactive two-stage 3D launch connects design review to lunar operations: assisted/manual throttle and pitch, countdown, stage separation, atmospheric climb and transfer sequence. The lunar simulation remains independent of launch real time. Tests include thrust/fuel response, safe separation, countdown, assisted completion and bounded fuel.
+
+# Career progression revision
+The default entry is now a six-chapter, eighteen-assignment career map. Every chapter has three progressively stricter assignments with multiple objectives, saved XP/stars/badges, sequential unlocks and no replay XP farming. Includes satellite commissioning/antenna tracking/power rescue; Earth orbital surveys; station docking; lunar surveys; Moon landings; and combined Mars survey/landing. Local training approximations are labeled. A launch certificate avoids repeated launch grinding; the original sandbox remains accessible.

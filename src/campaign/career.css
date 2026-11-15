@@ -1,0 +1,1132 @@
+.career-app {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 80% 10%, #192b2b55, transparent 45%), #080e14;
+}
+.career-brand {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  text-align: left;
+  background: none;
+  border: 0;
+  font: 600 17px "Space Grotesk";
+  letter-spacing: 1px;
+}
+.career-brand small {
+  display: block;
+  font: 8px "DM Sans";
+  letter-spacing: 2px;
+  color: #79938b;
+  margin-top: 7px;
+}
+.career-header-progress {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.career-header-progress span {
+  font-size: 11px;
+  color: #a7c298;
+}
+.career-header-progress b {
+  font: 16px "Space Grotesk";
+  color: #c4f38c;
+}
+.career-main {
+  display: block;
+  max-width: 1250px;
+  padding: 45px 40px 25px;
+  margin: auto;
+}
+.career-hero {
+  display: grid;
+  grid-template-columns: 1.3fr 0.7fr;
+  gap: 80px;
+  align-items: center;
+  margin: 0 0 55px;
+}
+.career-hero h1 {
+  font-size: 69px;
+  letter-spacing: -3px;
+  line-height: 1.04;
+  margin: 23px 0;
+}
+.career-hero p {
+  max-width: 560px;
+  color: #90a7a4;
+  font-size: 13px;
+  line-height: 1.95;
+}
+.career-hero .primary {
+  margin-top: 27px;
+  max-width: 440px;
+}
+.career-passport {
+  background:
+    radial-gradient(ellipse at 50% 0, #3a563329, transparent 70%), #14201e;
+  border: 1px solid #395341;
+  border-radius: 10px;
+  padding: 27px 32px;
+}
+.career-passport h2 {
+  font-size: 23px;
+  margin: 12px 0 20px;
+}
+.career-passport > b {
+  font: 36px "Space Grotesk";
+  color: #c5ef9b;
+}
+.career-passport small {
+  font: 11px "DM Sans";
+  color: #8da18d;
+}
+.career-passport > p {
+  font-size: 10px;
+  margin: 13px 0 0;
+  color: #7f9d80;
+}
+.passport-orbit {
+  height: 95px;
+  position: relative;
+  margin: 0 0 20px;
+}
+.passport-orbit > span {
+  font-size: 60px;
+  position: absolute;
+  left: calc(50% - 30px);
+  top: 8px;
+}
+.passport-orbit > i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 24px;
+  font-style: normal;
+  animation: passport-orbit 14s linear infinite;
+  transform-origin: 50% 50%;
+  height: 95px;
+}
+@keyframes passport-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.career-map-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 30px;
+  margin-bottom: 18px;
+}
+.career-map-title h2 {
+  font-size: 25px;
+  margin: 0;
+}
+.career-map-title > span {
+  font-size: 10px;
+  color: #718b83;
+  line-height: 1.7;
+}
+.career-chapters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 17px;
+}
+.chapter-card {
+  background: linear-gradient(150deg, #172421, #11191e);
+  border: 1px solid #34483d;
+  border-radius: 8px;
+  padding: 21px;
+}
+.chapter-locked {
+  background: #10191e;
+  border-color: #26353b;
+}
+.chapter-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.chapter-top > span {
+  font-size: 29px;
+}
+.chapter-top > small {
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: #7b9a89;
+}
+.chapter-top > b {
+  margin-left: auto;
+  color: #a7c98d;
+  font-size: 10px;
+  font-weight: 400;
+}
+.chapter-card h3 {
+  font: 500 22px "Space Grotesk";
+  letter-spacing: -0.5px;
+  margin: 17px 0 9px;
+}
+.chapter-card > p {
+  font-size: 11px;
+  line-height: 1.7;
+  color: #8fa79b;
+  min-height: 38px;
+}
+.chapter-skill {
+  font-size: 8px;
+  color: #a4bd8e;
+  letter-spacing: 0.7px;
+  padding: 12px 0 14px;
+  border-bottom: 1px solid #2b3e34;
+}
+.chapter-assignments {
+  margin: 3px -6px 15px;
+}
+.chapter-assignments > button {
+  width: 100%;
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  border: 0;
+  border-bottom: 1px solid #293b32;
+  background: none;
+  text-align: left;
+  padding: 15px 6px;
+}
+.chapter-assignments > button:disabled {
+  opacity: 0.45;
+}
+.chapter-assignments > button:hover:enabled {
+  background: #2d472832;
+  border-radius: 3px;
+}
+.assignment-num {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border: 1px solid #55734a;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #c0df9b;
+  font: 10px "Space Grotesk";
+}
+.chapter-assignments > button > div {
+  flex: 1;
+}
+.chapter-assignments b {
+  font-size: 11px;
+  font-weight: 500;
+  color: #d6e6cf;
+}
+.chapter-assignments small {
+  display: block;
+  font-size: 7px;
+  color: #718e76;
+  letter-spacing: 0.5px;
+  margin-top: 5px;
+}
+.chapter-assignments svg {
+  color: #8cad77;
+}
+.assignment-stars {
+  color: #bce58c;
+  font-size: 11px;
+  white-space: nowrap;
+  letter-spacing: 1px;
+}
+.chapter-reward {
+  display: block;
+  font-size: 8px;
+  line-height: 1.7;
+  letter-spacing: 0.6px;
+  color: #729a79;
+}
+.career-ground-rules {
+  padding: 27px 0 10px;
+}
+.career-ground-rules p {
+  font-size: 10px;
+  line-height: 1.9;
+  color: #607f77;
+}
+.career-ground-rules b {
+  color: #90aa8d;
+  font-weight: 500;
+}
+.career-ground-rules a {
+  color: #88ac90;
+}
+.career-ground-rules > button {
+  background: none;
+  border: 0;
+  color: #6c8e7e;
+  font-size: 9px;
+  padding: 5px 0;
+}
+.career-mission-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 19px 40px;
+  border-bottom: 1px solid #2c4036;
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #8baa91;
+  gap: 20px;
+}
+.career-mission-strip > button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: none;
+  border: 0;
+  font-size: 10px;
+  color: #a5c793;
+}
+.career-mission-strip > b {
+  color: #d1dfc8;
+  font-weight: 400;
+}
+.assignment-brief {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  max-width: 1300px;
+  margin: auto;
+  min-height: 720px;
+}
+.assignment-world {
+  position: relative;
+  padding: 55px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-right: 1px solid #2c4035;
+  background: radial-gradient(ellipse at 50% 40%, #264d6166, transparent 70%);
+}
+.assignment-world > span {
+  font-size: 105px;
+  margin: 0 0 35px;
+}
+.assignment-world > small {
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: #89aaa3;
+}
+.assignment-world h1 {
+  font-size: 53px;
+  line-height: 1.05;
+  margin: 23px 0;
+}
+.assignment-world p {
+  font-size: 13px;
+  line-height: 1.95;
+  color: #8ea8a0;
+  max-width: 480px;
+}
+.planet-moon {
+  background: radial-gradient(ellipse at 50% 40%, #5b666744, transparent 70%);
+}
+.planet-mars {
+  background: radial-gradient(ellipse at 50% 40%, #994e3533, transparent 70%);
+}
+.difficulty-ladder {
+  display: flex;
+  gap: 9px;
+  margin-top: 30px;
+}
+.difficulty-ladder > span {
+  padding: 8px 12px;
+  border: 1px solid #2d4436;
+  border-radius: 3px;
+  color: #506d5b;
+  font-size: 9px;
+}
+.difficulty-ladder .active {
+  background: #294024;
+  color: #bde296;
+  border-color: #567844;
+}
+.assignment-brief-controls {
+  padding: 43px 37px;
+}
+.assignment-brief-controls h2 {
+  font-size: 26px;
+}
+.goal-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  padding: 19px 0;
+  border-top: 1px solid #2f4539;
+  border-bottom: 1px solid #2f4539;
+  margin: 20px 0;
+  color: #9cb49f;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.goal-checks .met {
+  color: #c1eb91;
+}
+.career-tip {
+  background: #1c3024;
+  border-left: 2px solid #b3dc7e;
+  padding: 14px 16px;
+  font-size: 11px;
+  line-height: 1.9;
+  color: #9db692;
+  margin: 21px 0;
+}
+.career-tip b {
+  color: #d0e3bf;
+  font-weight: 500;
+}
+.career-tip p {
+  font-size: 11px;
+  margin: 7px 0 0;
+  color: #90a98a;
+  line-height: 1.8;
+}
+.career-kit-select {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 25px 0;
+}
+.career-kit-select > span {
+  margin-bottom: 8px;
+}
+.career-kit-select > button {
+  position: relative;
+  background: #17261f;
+  border: 1px solid #38513d;
+  padding: 12px;
+  text-align: left;
+  border-radius: 4px;
+}
+.career-kit-select > button.selected {
+  border-color: #abd783;
+  background: #294123;
+}
+.career-kit-select b {
+  font-size: 12px;
+  font-weight: 500;
+  color: #d3e9c2;
+}
+.career-kit-select small {
+  font-size: 9px;
+  line-height: 1.8;
+  display: block;
+  color: #829f87;
+  margin-top: 5px;
+}
+.career-kit-select svg {
+  position: absolute;
+  right: 12px;
+  top: 15px;
+  color: #b5df88;
+}
+.assignment-reward {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  font-size: 10px;
+  color: #b6d690;
+  padding: 16px 0;
+  margin: 15px 0;
+}
+.career-micro {
+  font-size: 9px;
+  line-height: 1.85;
+  color: #637f75;
+  margin: 14px 0;
+}
+.career-challenge {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  max-width: 1400px;
+  margin: auto;
+  min-height: 750px;
+}
+.career-controls {
+  padding: 35px;
+  background: #101c1b;
+  border-left: 1px solid #304738;
+}
+.career-controls h2 {
+  font-size: 27px;
+  margin-bottom: 17px;
+}
+.career-controls > p {
+  font-size: 12px;
+  line-height: 1.9;
+  color: #8aa69b;
+}
+.career-controls .career-micro {
+  font-size: 9px;
+  color: #688575;
+}
+.signal-stage {
+  position: relative;
+  min-height: 680px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 10% 90%, #21577844, transparent 65%), #06121e;
+}
+.signal-earth {
+  position: absolute;
+  font-size: 270px;
+  left: -40px;
+  bottom: -40px;
+  filter: drop-shadow(0 0 35px #4b9ad633);
+}
+.signal-satellite {
+  position: absolute;
+  left: 50%;
+  top: 35%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.signal-satellite > span {
+  font-size: 100px;
+  filter: drop-shadow(0 7px 20px #0005);
+}
+.signal-satellite > i {
+  height: 65px;
+  width: 6px;
+  background: repeating-linear-gradient(
+    90deg,
+    #4b94bc 0 14px,
+    #102c49 14px 16px
+  );
+  border: 1px solid #71a1c1;
+  transition: width 1s ease;
+}
+.signal-satellite.wings-open > i {
+  width: 85px;
+}
+.signal-waves {
+  position: absolute;
+  top: 40%;
+  left: 29%;
+  transform: rotate(-35deg);
+  height: 220px;
+  width: 180px;
+}
+.signal-waves i {
+  position: absolute;
+  inset: 0;
+  border: 1px solid #c1ed8a;
+  border-radius: 50%;
+  animation: signal-pulse 2s ease-out infinite;
+  opacity: 0;
+}
+.signal-waves i:nth-child(2) {
+  animation-delay: 0.65s;
+}
+.signal-waves i:nth-child(3) {
+  animation-delay: 1.3s;
+}
+@keyframes signal-pulse {
+  from {
+    transform: scale(0.2);
+    opacity: 0.8;
+  }
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+.challenge-sky-label {
+  position: absolute;
+  left: 28px;
+  top: 27px;
+  font-size: 8px;
+  letter-spacing: 1.2px;
+  color: #88aba4;
+  z-index: 1;
+}
+.career-meter {
+  margin: 20px 0;
+}
+.career-meter > span {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 8px;
+  color: #91b198;
+  letter-spacing: 0.7px;
+}
+.career-meter b {
+  font-weight: 400;
+  color: #cee2bd;
+}
+.career-meter > i {
+  display: block;
+  height: 5px;
+  background: #293f30;
+  margin-top: 10px;
+  overflow: hidden;
+}
+.career-meter em {
+  display: block;
+  height: 100%;
+  background: #bcea85;
+  transition: width 0.15s linear;
+}
+.career-controls .secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+}
+.career-orbit {
+  position: relative;
+  background: radial-gradient(ellipse, #1a343950, transparent 70%), #06121c;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 50px 22px 20px;
+}
+.career-orbit svg {
+  width: 100%;
+  max-height: 500px;
+  overflow: visible;
+}
+.world-mars {
+  background: radial-gradient(ellipse, #7f442a22, transparent 70%), #100f13;
+}
+.orbital-captures {
+  display: flex;
+  gap: 9px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 0 0 15px;
+}
+.orbital-captures > div {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  border: 1px solid #334d3d;
+  padding: 12px;
+  color: #4b6a59;
+  border-radius: 4px;
+  font-size: 8px;
+}
+.orbital-captures .received {
+  border-color: #a6cf79;
+  color: #c6ed9f;
+  background: #2b4523;
+}
+.career-orbit > .career-micro {
+  text-align: center;
+}
+.career-meters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.career-status {
+  display: flex;
+  justify-content: space-between;
+  font-size: 8px;
+  color: #9dbf8a;
+  margin: 16px 0;
+}
+.career-mode-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.career-mode-buttons button {
+  background: #192c24;
+  border: 1px solid #3b5b42;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 11px;
+  padding: 17px 8px;
+  font-size: 11px;
+  color: #9dbc97;
+}
+.career-mode-buttons .selected {
+  background: #35552b;
+  border-color: #bee693;
+  color: #d4f3ac;
+}
+.exposure-meter {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: #6e927b;
+  font-size: 9px;
+  margin: 13px 0;
+}
+.career-time {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 20px 0;
+}
+.career-time button {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  padding: 7px;
+  background: none;
+  border: 1px solid #314c39;
+  font-size: 9px;
+  color: #9fbc94;
+}
+.career-time select {
+  margin: 0;
+  width: 100px;
+  padding: 8px;
+}
+.maneuver-view {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: radial-gradient(ellipse, #1a334433, transparent 70%), #07121c;
+  overflow: hidden;
+}
+.maneuver-view svg {
+  width: 100%;
+  min-height: 500px;
+}
+.mars-surface {
+  background:
+    radial-gradient(ellipse at 50% 80%, #8f482b44, transparent 70%), #180e12;
+}
+.maneuver-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin: 25px 0;
+}
+.maneuver-stats span {
+  display: block;
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: #7c9d87;
+}
+.maneuver-stats b {
+  display: block;
+  font: 25px "Space Grotesk";
+  color: #cde5b7;
+  margin-top: 8px;
+}
+.dock-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 20px 0;
+}
+.dock-controls button {
+  min-height: 53px;
+  border: 1px solid #4c7045;
+  background: #243e2d;
+  color: #c5e3aa;
+  border-radius: 4px;
+  font-size: 10px;
+  touch-action: none;
+  user-select: none;
+}
+.dock-controls button:active {
+  background: #688d43;
+  color: #11210e;
+}
+.career-result {
+  max-width: 850px;
+  margin: 0 auto;
+  text-align: center;
+  padding: 55px 35px 70px;
+}
+.result-orbit-symbol {
+  height: 90px;
+  width: 90px;
+  border: 1px solid #789c58;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 25px;
+  color: #c4ec90;
+  font: 50px "Space Grotesk";
+  background: #243d24;
+  box-shadow: 0 0 90px #9bcc4e11;
+}
+.career-result h1 {
+  font-size: 50px;
+  letter-spacing: -2px;
+  margin: 20px 0;
+}
+.result-stars {
+  font-size: 34px;
+  letter-spacing: 12px;
+  color: #d7eb9e;
+  margin: 25px 0;
+}
+.career-result > p {
+  font-size: 13px;
+  line-height: 1.9;
+  color: #9cb395;
+  max-width: 620px;
+  margin: 20px auto;
+}
+.career-result-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  padding: 25px 0;
+  border-top: 1px solid #2a4434;
+  border-bottom: 1px solid #2a4434;
+  margin: 30px 0;
+}
+.career-result-stats span {
+  display: block;
+  color: #7f9e80;
+  font-size: 9px;
+}
+.career-result-stats b {
+  display: block;
+  font: 22px "Space Grotesk";
+  margin-top: 10px;
+  color: #cde5b7;
+}
+.career-xp-reward {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 30px 0;
+}
+.career-xp-reward > b {
+  font: 37px "Space Grotesk";
+  color: #c4f38c;
+}
+.career-xp-reward > span {
+  font-size: 11px;
+  color: #96b487;
+}
+.career-xp-reward > strong {
+  font: 500 18px "Space Grotesk";
+  margin-top: 10px;
+  color: #ddebba;
+}
+.career-result-actions {
+  max-width: 500px;
+  margin: auto;
+}
+.career-result-actions .secondary {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+}
+.career-result.lost .result-orbit-symbol {
+  background: #442c24;
+  color: #efbf99;
+  border-color: #966447;
+}
+.career-result.lost .result-stars {
+  color: #785f47;
+}
+.campaign-complete {
+  border: 1px solid #b9db7c;
+  background: #294823;
+  color: #d3efa5;
+  font-size: 12px;
+  line-height: 1.9;
+  padding: 20px;
+  margin: 20px 0;
+  border-radius: 6px;
+}
+@media (max-width: 1050px) {
+  .career-main {
+    padding: 35px 25px;
+  }
+  .career-hero {
+    gap: 35px;
+  }
+  .career-chapters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .career-header-progress span {
+    display: none;
+  }
+  .assignment-world {
+    padding: 35px;
+  }
+  .career-controls {
+    padding: 28px;
+  }
+  .career-time {
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 760px) {
+  .career-app header {
+    height: auto;
+    min-height: 80px;
+    flex-wrap: wrap;
+    gap: 15px;
+    padding: 20px;
+  }
+  .career-brand {
+    font-size: 14px;
+  }
+  .career-brand small {
+    font-size: 6px;
+    letter-spacing: 1.5px;
+  }
+  .career-header-progress {
+    margin-left: auto;
+  }
+  .career-app .header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .career-app .header-actions .text-button {
+    font-size: 10px;
+  }
+  .career-main {
+    padding: 25px 20px;
+  }
+  .career-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 30px;
+    margin-bottom: 35px;
+  }
+  .career-hero h1 {
+    font-size: 51px;
+    letter-spacing: -2.5px;
+  }
+  .career-hero p {
+    font-size: 12px;
+  }
+  .career-hero .eyebrow {
+    font-size: 7px;
+    letter-spacing: 1px;
+  }
+  .career-passport {
+    padding: 20px;
+  }
+  .passport-orbit {
+    display: none;
+  }
+  .career-passport h2 {
+    font-size: 21px;
+    margin-bottom: 15px;
+  }
+  .career-map-title {
+    flex-direction: column;
+    gap: 9px;
+  }
+  .career-map-title > span {
+    font-size: 10px;
+  }
+  .career-chapters {
+    grid-template-columns: 1fr;
+  }
+  .chapter-card > p {
+    min-height: 0;
+  }
+  .chapter-card {
+    padding: 20px;
+  }
+  .career-mission-strip {
+    padding: 16px 20px;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: 8px;
+  }
+  .career-mission-strip > b {
+    flex-basis: 100%;
+    margin-top: 5px;
+  }
+  .assignment-brief {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .assignment-world {
+    padding: 30px 25px;
+    border-right: 0;
+    border-bottom: 1px solid #2b4433;
+  }
+  .assignment-world > span {
+    font-size: 70px;
+    margin: 0 0 15px;
+  }
+  .assignment-world h1 {
+    font-size: 37px;
+    letter-spacing: -1.5px;
+    margin: 15px 0;
+  }
+  .assignment-world p {
+    font-size: 12px;
+  }
+  .difficulty-ladder {
+    margin-top: 17px;
+  }
+  .assignment-brief-controls {
+    padding: 28px 25px;
+  }
+  .career-challenge {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .signal-stage {
+    min-height: 320px;
+    height: 320px;
+  }
+  .signal-earth {
+    font-size: 190px;
+    bottom: -60px;
+  }
+  .signal-satellite {
+    top: 37%;
+    left: 59%;
+  }
+  .signal-satellite > span {
+    font-size: 70px;
+  }
+  .signal-satellite > i {
+    height: 45px;
+  }
+  .signal-satellite.wings-open > i {
+    width: 50px;
+  }
+  .signal-waves {
+    height: 170px;
+    width: 120px;
+    top: 35%;
+    left: 28%;
+  }
+  .career-controls {
+    padding: 25px;
+    border-left: 0;
+    border-top: 1px solid #2e4635;
+  }
+  .career-orbit {
+    padding: 40px 14px 20px;
+  }
+  .career-orbit svg {
+    max-height: 300px;
+  }
+  .challenge-sky-label {
+    left: 20px;
+    top: 20px;
+    font-size: 7px;
+  }
+  .orbital-captures {
+    gap: 6px;
+  }
+  .orbital-captures > div {
+    font-size: 7px;
+    padding: 9px;
+    gap: 6px;
+  }
+  .orbital-captures svg {
+    width: 15px;
+  }
+  .maneuver-view svg {
+    min-height: 0;
+    max-height: 370px;
+  }
+  .maneuver-view {
+    min-height: 350px;
+  }
+  .career-result {
+    padding: 35px 23px;
+  }
+  .career-result h1 {
+    font-size: 35px;
+  }
+  .result-stars {
+    font-size: 28px;
+  }
+  .result-orbit-symbol {
+    width: 70px;
+    height: 70px;
+    font-size: 40px;
+  }
+  .career-result-stats {
+    gap: 17px;
+  }
+  .career-result-stats b {
+    font-size: 19px;
+  }
+  .career-result-actions .primary {
+    font-size: 11px;
+    gap: 10px;
+    line-height: 1.6;
+  }
+  .career-tip {
+    font-size: 10px;
+  }
+  .career-mode-buttons button {
+    padding: 15px 6px;
+    font-size: 10px;
+  }
+  .career-ground-rules p {
+    font-size: 9px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .passport-orbit > i,
+  .signal-waves i {
+    animation: none;
+  }
+  .signal-waves i {
+    opacity: 0.35;
+  }
+  .signal-satellite > i,
+  .career-meter em {
+    transition: none;
+  }
+}
+.career-result.won .result-stars {
+  animation: earn-stars 0.65s ease-out;
+}
+.career-result.won .result-orbit-symbol {
+  animation: earn-stars 0.5s ease-out;
+}
+.career-xp-reward .level-unlocked {
+  display: block;
+  color: #d8f3aa;
+  letter-spacing: 1px;
+  font: 11px "Space Grotesk";
+  padding: 12px 18px;
+  border: 1px solid #789950;
+  border-radius: 4px;
+  background: #314d27;
+  margin: 7px auto;
+}
+@keyframes earn-stars {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .career-result.won .result-stars,
+  .career-result.won .result-orbit-symbol {
+    animation: none;
+  }
+}

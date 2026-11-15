@@ -2347,3 +2347,24 @@ footer button {
     transition: none;
   }
 }
+@media (max-width: 760px) {
+  .app header .header-actions {
+    gap: 6px;
+  }
+  .app header .tutorial-launch {
+    font-size: 8px;
+    padding: 6px;
+  }
+  .app header .brand {
+    font-size: 12px;
+    gap: 9px;
+  }
+  .app header .brand-mark {
+    width: 32px;
+    height: 32px;
+  }
+  .app header .icon {
+    width: 28px;
+    height: 28px;
+  }
+}

@@ -11,6 +11,7 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 1060 } });
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 await page.goto("http://127.0.0.1:5173");
+await page.getByRole("button", { name: /Lunar sandbox/ }).click();
 await page.getByRole("button", { name: "Explain my equipment" }).click();
 await page.getByRole("button", { name: "Show me the journey" }).click();
 await page.getByRole("button", { name: "Start guided first mission" }).click();
