@@ -1,6 +1,6 @@
 import { chromium, expect } from "@playwright/test";
 import assert from "node:assert/strict";
-import { deployDesign, dismissCoach } from "./launch-flow.mjs";
+import { deployDesign, dismissCoach, completeField } from "./launch-flow.mjs";
 const browser = await chromium.launch({
   headless: true,
   executablePath:
@@ -77,6 +77,19 @@ await lunar.page.screenshot({
 });
 await lunar.page.clock.runFor(130000);
 await expect(
+  lunar.page.getByRole("heading", {
+    name: "Assignment complete.",
+    exact: true,
+  }),
+).toHaveCount(0);
+assert.equal(
+  await lunar.page.evaluate(
+    () => JSON.parse(localStorage.getItem("ols-career-v1")).best["landing-0"],
+  ),
+  undefined,
+);
+await completeField(lunar.page);
+await expect(
   lunar.page.getByRole("heading", { name: "Assignment complete." }),
 ).toBeVisible();
 assert.deepEqual(lunar.errors, []);
@@ -101,6 +114,7 @@ await mars.page
 await dismissCoach(mars.page);
 await mars.page.getByRole("checkbox", { name: /Landing assistance/ }).check();
 await mars.page.clock.runFor(130000);
+await completeField(mars.page);
 await expect(
   mars.page.getByRole("heading", { name: "Assignment complete." }),
 ).toBeVisible();

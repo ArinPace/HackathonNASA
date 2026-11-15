@@ -36,7 +36,7 @@ export const missions = [
     badge: "Satellite Operator",
     emoji: "🛰",
     lesson: "Deploy a satellite and make first contact.",
-    newSkill: "Solar panels & radio",
+    newSkill: "Spin control, separation & first contact",
     goals: ["Deploy the solar wings", "Send a complete test signal to Earth"],
     story:
       "Your very first satellite is ready. Unfold its solar panels, then let Earth know it survived the ride.",
@@ -50,7 +50,7 @@ export const missions = [
     badge: "Orbital Pilot",
     emoji: "🌍",
     lesson: "Keep an Earth-observing satellite working through darkness.",
-    newSkill: "Observation, eclipses & battery",
+    newSkill: "Insertion burns, eclipses & science",
     goals: [
       "Return photos from 2 different areas",
       "Survive 180 simulated seconds of eclipse",
@@ -104,7 +104,7 @@ export const missions = [
     badge: "Soft Touch",
     emoji: "🚀",
     lesson: "Bring a lander down without breaking it.",
-    newSkill: "Gravity, braking & landing accuracy",
+    newSkill: "Powered descent & rover exploration",
     goals: [
       "Touch down inside the marked landing zone",
       "Vertical speed below 3 m/s",
@@ -122,7 +122,7 @@ export const missions = [
     badge: "Interplanetary Commander",
     emoji: "🔴",
     lesson: "Survey Mars, then complete a harder powered landing.",
-    newSkill: "Weaker sunlight, slower radio & stronger gravity",
+    newSkill: "Insertion, survey, landing & rover science",
     goals: [
       "Return observations from 4 Martian areas",
       "Preserve power with weaker solar generation",
@@ -218,6 +218,7 @@ export function rank(points: number) {
             : "Flight Cadet";
 }
 export type Result = {
+  assisted?: boolean;
   success: boolean;
   score: number;
   reason: string;

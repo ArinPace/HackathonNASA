@@ -33,7 +33,36 @@ export type LaunchState = {
   countdown: number;
   assist: boolean;
   stagedAt: number | null;
+  lateralVelocity: number;
+  downrange: number;
+  dynamicPressure: number;
+  integrity: number;
+  offCourse: number;
+  reason: string;
 };
+// Limits belong to this vertical-ascent training contract, not all real rockets.
+export function pitchLimit(altitude: number) {
+  return altitude < 10000
+    ? 12
+    : altitude < 30000
+      ? 25
+      : altitude < 60000
+        ? 40
+        : 55;
+}
+export function flightWarning(s: LaunchState) {
+  if (s.status === "failed") return s.reason;
+  if (s.status !== "flying") return "";
+  if (Math.abs(s.pitch) > pitchLimit(s.altitude))
+    return `OFF COURSE: ${Math.round(s.pitch)}° lean. Keep within ±${pitchLimit(s.altitude)}° for this ascent. Correct within ${Math.max(0, (20 - s.offCourse) / 4).toFixed(1)} real seconds.`;
+  if (s.dynamicPressure > 45000)
+    return "HIGH AERODYNAMIC LOAD: reduce throttle while the air is dense.";
+  if (s.velocity < -5)
+    return "LOSING ALTITUDE: restore upward thrust and correct your lean now.";
+  if (s.stage === 1 && s.fuel[0] === 0)
+    return "BOOSTER EMPTY: coasting without thrust. Separate now to ignite the upper engine.";
+  return "";
+}
 export function newLaunch(config: Partial<RocketConfig> = {}): LaunchState {
   const cfg = { ...stockRocket, ...config };
   return {
@@ -51,6 +80,12 @@ export function newLaunch(config: Partial<RocketConfig> = {}): LaunchState {
     countdown: 4,
     assist: true,
     stagedAt: null,
+    lateralVelocity: 0,
+    downrange: 0,
+    dynamicPressure: 0,
+    integrity: 100,
+    offCourse: 0,
+    reason: "",
   };
 }
 export function separate(s: LaunchState) {
@@ -99,6 +134,28 @@ export function launchStep(s: LaunchState, realDt: number, payloadKg: number) {
       (s.stage === 1 ? s.config.firstDry + s.fuel[0] : 0);
     const gravity = 9.80665 * (6371000 / (6371000 + s.altitude)) ** 2;
     const density = Math.exp(-s.altitude / 8500);
+    const speed = Math.hypot(s.velocity, s.lateralVelocity);
+    s.dynamicPressure = 0.5 * 1.225 * density * speed ** 2;
+    const offCourse = Math.abs(s.pitch) > pitchLimit(s.altitude);
+    s.offCourse = Math.max(0, s.offCourse + dt * (offCourse ? 1 : -2));
+    if (offCourse)
+      s.integrity = Math.max(
+        0,
+        s.integrity - dt * Math.max(0, s.dynamicPressure / 18000),
+      );
+    if (s.dynamicPressure > 75000)
+      s.integrity = Math.max(
+        0,
+        s.integrity - (dt * (s.dynamicPressure - 75000)) / 10000,
+      );
+    if (s.offCourse >= 20 || s.integrity <= 0) {
+      s.status = "failed";
+      s.reason =
+        s.integrity <= 0
+          ? "Aerodynamic loads damaged the rocket. Stay close to upright in dense air and throttle back during high load."
+          : "The rocket stayed outside its ascent corridor too long. Too much thrust went sideways to meet the launch contract. Correct your lean when the warning appears.";
+      break;
+    }
     const drag =
       (0.5 * 1.225 * density * 12 * s.velocity * Math.abs(s.velocity)) / mass;
     const acceleration =
@@ -106,20 +163,44 @@ export function launchStep(s: LaunchState, realDt: number, payloadKg: number) {
       gravity -
       drag;
     s.velocity += acceleration * dt;
+    const lateralDrag =
+      (0.5 * 1.225 * density * 12 * s.lateralVelocity * speed) / mass;
+    s.lateralVelocity +=
+      ((thrust * firing * Math.sin((s.pitch * Math.PI) / 180)) / mass -
+        lateralDrag) *
+      dt;
+    s.downrange += s.lateralVelocity * dt;
     s.altitude += s.velocity * dt;
     if (s.stage === 2 && burn > 0) s.burn2 += dt;
     if (s.altitude < 0) {
       s.altitude = 0;
       if (s.maxAltitude > 50) {
         s.status = "failed";
+        s.reason =
+          "The rocket fell back to Earth. Preserve upward thrust, stage promptly, and keep inside the indicated lean corridor.";
         break;
       }
       s.velocity = 0;
     }
     s.maxAltitude = Math.max(s.maxAltitude, s.altitude);
-    if (s.altitude >= 100000 && s.stage === 2 && s.burn2 >= 8 && s.velocity > 0)
+    if (
+      s.altitude >= 100000 &&
+      s.stage === 2 &&
+      s.burn2 >= 8 &&
+      s.velocity > 0 &&
+      !offCourse
+    )
       s.status = "handoff";
-    if (s.fuel[1] <= 0 && s.velocity <= 0) s.status = "failed";
+    if (
+      (s.fuel[1] <= 0 && s.velocity <= 0) ||
+      (s.time > 24 && s.maxAltitude < 30)
+    ) {
+      s.status = "failed";
+      s.reason =
+        s.maxAltitude < 30
+          ? "Insufficient thrust to clear the launchpad. Raise throttle before ignition or select a lighter fuel load."
+          : "The rocket exhausted its upper-stage propellant without securing the climb. Reduce wasted sideways thrust or add propellant.";
+    }
   }
   return s;
 }

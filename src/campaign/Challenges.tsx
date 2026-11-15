@@ -737,6 +737,7 @@ export function ManeuverChallenge({
       const success = s.status === "success";
       onDone({
         success,
+        assisted: assisted.current,
         score: success
           ? Math.min(
               assisted.current ? 79 : 100,

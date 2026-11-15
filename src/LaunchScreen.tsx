@@ -13,6 +13,8 @@ import {
   newLaunch,
   launchStep,
   separate,
+  flightWarning,
+  pitchLimit,
   type RocketConfig,
 } from "./sim/launch";
 import { LaunchScene } from "./LaunchScene";
@@ -47,7 +49,7 @@ export function LaunchScreen({
       : destination === "mars"
         ? "Mars"
         : "the Moon";
-  const [guide, setGuide] = useState(() => unseen("launch-v4"));
+  const [guide, setGuide] = useState(() => unseen("launch-v5"));
   const state = useRef({ ...newLaunch(rocketConfig), assist: assistInitially }),
     [, render] = useState(0),
     [hold, setHold] = useState(false),
@@ -145,7 +147,7 @@ export function LaunchScreen({
   }
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
-      if (guide || paused) return;
+      if (guide || paused || hold || travel !== null) return;
       if (
         ["INPUT", "SELECT", "TEXTAREA"].includes(
           (e.target as HTMLElement).tagName,
@@ -167,11 +169,30 @@ export function LaunchScreen({
         e.preventDefault();
         steer(3);
       }
+      if (["w", "s", "x", "z"].includes(e.key.toLowerCase())) {
+        e.preventDefault();
+        const s = state.current;
+        s.assist = false;
+        s.throttle =
+          e.key.toLowerCase() === "x"
+            ? 0
+            : e.key.toLowerCase() === "z"
+              ? 1
+              : Math.max(
+                  0,
+                  Math.min(
+                    1,
+                    s.throttle + (e.key.toLowerCase() === "w" ? 0.05 : -0.05),
+                  ),
+                );
+        render((n) => n + 1);
+      }
     };
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
-  }, [guide, paused]);
+  }, [guide, paused, hold, travel]);
   const s = state.current,
+    warning = flightWarning(s),
     stageReady =
       s.status === "flying" &&
       s.stage === 1 &&
@@ -182,16 +203,21 @@ export function LaunchScreen({
       : s.status === "countdown"
         ? "Engine checks complete. Stand by for liftoff."
         : s.status === "failed"
-          ? "The climb did not work. Try again with flight assistance, or more thrust."
+          ? s.reason
           : s.status === "handoff"
             ? "You reached the edge of space. Next: the guided journey to your destination."
-            : stageReady
-              ? "The booster is nearly empty. Separate it to drop dead weight and start the next engine."
-              : s.stage === 2
-                ? "Upper engine firing. Your rocket is lighter now—watch it climb."
-                : "The engine pushes up; Earth’s gravity pulls down. Keep enough thrust to climb.";
+            : warning
+              ? warning
+              : stageReady
+                ? "The booster is nearly empty. Separate it to drop dead weight and start the next engine."
+                : s.stage === 2
+                  ? "Upper engine firing. Your rocket is lighter now—watch it climb."
+                  : "The engine pushes up; Earth’s gravity pulls down. Keep enough thrust to climb.";
   return (
-    <section className="launch-screen" aria-label="Rocket launch">
+    <section
+      className={"launch-screen " + (warning ? "flight-danger" : "")}
+      aria-label="Rocket launch"
+    >
       <div className="launch-theater">
         {travel === null ? (
           <>
@@ -211,7 +237,9 @@ export function LaunchScreen({
                       ? "Hello, space."
                       : s.status === "failed"
                         ? "Every flight teaches."
-                        : "We have liftoff."}
+                        : warning
+                          ? "Flight needs correction."
+                          : "We have liftoff."}
               </h1>
               <span className="launch-phase">
                 {s.status === "flying"
@@ -249,6 +277,14 @@ export function LaunchScreen({
                 </b>
               </div>
             </div>
+            {warning && (
+              <div className="flight-warning" role="alert">
+                <b>
+                  {s.status === "failed" ? "FLIGHT LOST" : "FLIGHT WARNING"}
+                </b>
+                <span>{warning}</span>
+              </div>
+            )}
           </>
         ) : (
           <div className="transfer-scene">
@@ -412,6 +448,71 @@ export function LaunchScreen({
                 D →
               </button>
             </div>
+            <div className="flight-envelope" data-guide="flight-envelope">
+              <div>
+                <span>SAFE LEAN FOR THIS ALTITUDE</span>
+                <b>±{pitchLimit(s.altitude)}°</b>
+              </div>
+              <div>
+                <span>AIR LOAD</span>
+                <b>{(s.dynamicPressure / 1000).toFixed(1)} kPa</b>
+              </div>
+              <div>
+                <span>STRUCTURE</span>
+                <b>{Math.round(s.integrity)}%</b>
+              </div>
+              <div>
+                <span>SIDEWAYS SPEED</span>
+                <b>{Math.round(s.lateralVelocity)} m/s</b>
+              </div>
+              <div className="bar">
+                <i style={{ width: `${s.integrity}%` }} />
+              </div>
+            </div>
+            <label className="throttle-control">
+              DIRECT LEAN CONTROL · A / D
+              <input
+                aria-label="Rocket lean angle"
+                type="range"
+                min="-65"
+                max="65"
+                value={s.pitch}
+                onChange={(e) => {
+                  s.assist = false;
+                  s.pitch = +e.target.value;
+                  render((n) => n + 1);
+                }}
+              />
+            </label>
+            <div className="flight-quick-controls">
+              <button
+                onClick={() => {
+                  s.pitch = 0;
+                  s.assist = false;
+                  render((n) => n + 1);
+                }}
+              >
+                Return upright
+              </button>
+              <button
+                onClick={() => {
+                  s.throttle = 0;
+                  s.assist = false;
+                  render((n) => n + 1);
+                }}
+              >
+                Cut engine · X
+              </button>
+              <button
+                onClick={() => {
+                  s.throttle = 1;
+                  s.assist = false;
+                  render((n) => n + 1);
+                }}
+              >
+                Full thrust · Z
+              </button>
+            </div>
             {s.status === "ready" ? (
               <button className="primary ignite" onClick={ignite}>
                 Start countdown <Rocket size={18} />
@@ -471,7 +572,9 @@ export function LaunchScreen({
             <p className="launch-model-note">
               Simplified vertical ascent · 4× compressed flight time · 100 km is
               the edge of space, not orbit. The launch service performs the
-              later insertion and transfer.
+              later transfer. The lean corridor is a training constraint; large
+              lean angles are not universally unsafe on real trajectories. W/S
+              adjusts throttle.
             </p>
           </>
         ) : (
@@ -544,13 +647,18 @@ export function LaunchScreen({
               target: ".launch-fuel",
             },
             {
+              title: "Bad steering has visible consequences.",
+              body: "Watch the safe lean corridor and air-load meter. Sustained excessive lean fails the flight; high aerodynamic loads damage structure. Correct early with A/D or Return upright. W/S changes throttle, X cuts the engine, Z restores full thrust.",
+              target: '[data-guide="flight-envelope"]',
+            },
+            {
               title: "Practice is available, not automatic.",
               body: "Flight assistance can demonstrate a safe climb, but career launches start under your control. Begin the countdown when you are ready. Reaching 100 km is not orbit; the selected service guides insertion and transfer.",
               target: ".ignite",
             },
           ]}
           onClose={() => {
-            markSeen("launch-v4");
+            markSeen("launch-v5");
             setGuide(false);
           }}
         />

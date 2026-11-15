@@ -34,6 +34,12 @@ import { MissionIntro } from "../MissionIntro";
 import { balancedDesign } from "../sim/mission";
 import { Workshop } from "./MissionWorkshop";
 import { starterBuild, deriveBuild, type Build } from "./workshop";
+import {
+  DeploymentChallenge,
+  NavigationChallenge,
+  SurfaceChallenge,
+} from "./FlightOperations";
+import { missionStages, missionRating, type FlightPhase } from "./operations";
 import "./career.css";
 const KEY = "ols-career-v1";
 function read() {
@@ -83,7 +89,7 @@ function goals(index: number) {
 export function Campaign({ onSandbox }: { onSandbox: () => void }) {
   const [progress, setProgress] = useState<Progress>(read),
     [phase, setPhase] = useState<
-      "map" | "brief" | "workshop" | "launch" | "play" | "surface" | "result"
+      "map" | "brief" | "workshop" | "launch" | "result" | FlightPhase
     >("map"),
     [selected, setSelected] = useState(0),
     [load, setLoad] = useState(0),
@@ -94,9 +100,9 @@ export function Campaign({ onSandbox }: { onSandbox: () => void }) {
     [attempt, setAttempt] = useState(0);
   const [build, setBuild] = useState<Build>(() => starterBuild(0));
   const kit = deriveBuild(build, selected);
-  const orbitalResult = useState<{ current: Result | null }>({
-    current: null,
-  })[0];
+  const [stageResults, setStageResults] = useState<Record<string, Result>>({});
+  const [checkpoint, setCheckpoint] = useState<FlightPhase>("commission");
+  const stages = missionStages(selected);
   const a = assignments[selected],
     points = xp(progress),
     done = Object.keys(progress.best).length,
@@ -121,26 +127,43 @@ export function Campaign({ onSandbox }: { onSandbox: () => void }) {
     setLoad(i >= 9 ? 2 : 0);
     setPhase("brief");
     setResult(null);
-    orbitalResult.current = null;
+    setStageResults({});
+    setCheckpoint("commission");
   }
   function start() {
     setAttempt((n) => n + 1);
     setPhase("workshop");
   }
   function finish(r: Result) {
-    if (a.kind === "mars" && phase === "play" && r.success) {
-      orbitalResult.current = r;
-      setPhase("surface");
-      return;
-    }
     let final = r;
-    if (a.kind === "mars" && r.success && orbitalResult.current) {
+    if (stages.some((stage) => stage.id === phase))
+      setCheckpoint(phase as FlightPhase);
+    if (r.success) {
+      const completed = { ...stageResults, [phase]: r };
+      setStageResults(completed);
+      const nextStage =
+        stages[stages.findIndex((stage) => stage.id === phase) + 1];
+      if (nextStage) {
+        setPhase(nextStage.id);
+        return;
+      }
+      const results = stages.map((stage) => completed[stage.id]);
+      if (results.some((value) => !value?.success)) return;
       final = {
         ...r,
-        score: Math.round((r.score + orbitalResult.current.score) / 2),
+        score: missionRating(results),
         reason:
-          "Orbital survey complete. Lander safe. Your expedition reached the Red Planet and brought useful evidence home.",
-        stats: [...orbitalResult.current.stats, ...r.stats],
+          a.kind === "mars"
+            ? "Orbital survey complete. Lander safe. Rover samples received. You operated the complete expedition from payload release to surface science."
+            : a.kind === "land"
+              ? "Safe payload release, orbit insertion, touchdown and rover science. The complete lunar expedition returned useful evidence."
+              : `All ${stages.length} flight stages complete. ${r.reason}`,
+        stats: stages.flatMap((stage) =>
+          completed[stage.id].stats.map((stat) => ({
+            ...stat,
+            label: `${stage.label}: ${stat.label}`,
+          })),
+        ),
       };
     }
     setResult(final);
@@ -368,6 +391,32 @@ export function Campaign({ onSandbox }: { onSandbox: () => void }) {
               LEVEL {selected + 1} · {a.title}
             </b>
           </div>
+          {phase !== "brief" && phase !== "workshop" && phase !== "result" && (
+            <nav
+              className="mission-stage-track"
+              aria-label="Mission flight stages"
+            >
+              <span className={phase === "launch" ? "active" : "done"}>
+                01 Launch / delivery
+              </span>
+              {stages.map((stage, i) => (
+                <span
+                  key={stage.id}
+                  className={
+                    phase === stage.id
+                      ? "active"
+                      : stageResults[stage.id]
+                        ? "done"
+                        : ""
+                  }
+                >
+                  {String(i + 2).padStart(2, "0")}{" "}
+                  {stageResults[stage.id] ? "✓ " : ""}
+                  {stage.label}
+                </span>
+              ))}
+            </nav>
+          )}
           {phase === "brief" ? (
             <section className="assignment-brief">
               <div className={"assignment-world planet-" + a.world}>
@@ -400,9 +449,19 @@ export function Campaign({ onSandbox }: { onSandbox: () => void }) {
                       : "Prove your mastery."}
                 </h2>
                 <div className="goal-checks">
+                  <span>○ Safely release and stabilize the payload</span>
+                  {a.chapter > 0 && (
+                    <span>○ Time and control the orbit insertion burn</span>
+                  )}
                   {goals(selected).map((g) => (
                     <span key={g}>○ {g}</span>
                   ))}
+                  {(a.kind === "mars" || a.kind === "land") && (
+                    <span>
+                      ○ Drive the rover, collect {2 + a.tier} unique samples and
+                      return their evidence
+                    </span>
+                  )}
                 </div>
                 <div className="career-tip">
                   <b>What gets harder?</b>
@@ -453,7 +512,9 @@ export function Campaign({ onSandbox }: { onSandbox: () => void }) {
               certificate={progress.launchCertified}
               onCommit={(skip) => {
                 if (kit.blocks.length) return;
-                setPhase(skip ? "play" : "launch");
+                setStageResults({});
+                setCheckpoint("commission");
+                setPhase(skip ? "commission" : "launch");
               }}
             />
           ) : phase === "launch" ? (
@@ -474,7 +535,7 @@ export function Campaign({ onSandbox }: { onSandbox: () => void }) {
               paused={intro}
               onComplete={() => {
                 persist({ ...progress, launchCertified: true });
-                setPhase("play");
+                setPhase("commission");
               }}
             />
           ) : phase === "result" && result ? (
@@ -550,11 +611,7 @@ export function Campaign({ onSandbox }: { onSandbox: () => void }) {
                   className="secondary"
                   onClick={() => {
                     setAttempt((n) => n + 1);
-                    setPhase(
-                      a.kind === "mars" && orbitalResult.current
-                        ? "surface"
-                        : "play",
-                    );
+                    setPhase(checkpoint);
                     setResult(null);
                   }}
                 >
@@ -580,7 +637,30 @@ export function Campaign({ onSandbox }: { onSandbox: () => void }) {
             </section>
           ) : (
             <div key={`${a.id}-${attempt}-${phase}`}>
-              {a.kind === "signal" ? (
+              {phase === "commission" ? (
+                <DeploymentChallenge
+                  tier={a.tier}
+                  kit={kit}
+                  suspended={intro}
+                  onDone={finish}
+                />
+              ) : phase === "navigation" ? (
+                <NavigationChallenge
+                  world={a.world}
+                  tier={a.tier}
+                  kit={kit}
+                  suspended={intro}
+                  onDone={finish}
+                />
+              ) : phase === "explore" ? (
+                <SurfaceChallenge
+                  world={a.world}
+                  tier={a.tier}
+                  kit={kit}
+                  suspended={intro}
+                  onDone={finish}
+                />
+              ) : a.kind === "signal" ? (
                 <SignalChallenge
                   suspended={intro}
                   kit={kit}
