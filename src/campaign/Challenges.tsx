@@ -15,6 +15,15 @@ import {
   type World,
   type Result,
 } from "./model";
+import { Coach, unseen, markSeen } from "./Coach";
+import { deriveBuild, starterBuild, type FlightKit } from "./workshop";
+import {
+  newSignal,
+  signalStep,
+  signalEnvironment,
+  signalDuration,
+  signalScore,
+} from "./signal";
 function useFrames(step: (dt: number) => void) {
   const live = useRef(step);
   live.current = step;
@@ -35,41 +44,45 @@ export function SignalChallenge({
   onDone,
   tier = 0,
   suspended = false,
+  kit: provided,
 }: {
   onDone: (r: Result) => void;
   tier?: number;
   suspended?: boolean;
+  kit?: FlightKit;
 }) {
-  const s = useRef({
-      panels: false,
-      tx: false,
-      energy: tier === 2 ? 0.25 : 3,
-      signal: 0,
-      t: 0,
-      done: false,
-      aim: 0,
-    }),
-    [, paint] = useState(0);
-  const a = s.current;
-  const target = tier === 2 ? Math.sin(a.t * 0.32) * 7 : 5,
-    aligned = tier === 0 || Math.abs(a.aim - target) < 3,
-    required = 2 + tier * 2,
-    dark = tier === 2 && a.t % 18 > 11;
+  const kit = provided ?? deriveBuild(starterBuild(tier), tier),
+    key = `signal-v4-${tier}`;
+  const [guide, setGuide] = useState(() => unseen(key)),
+    state = useRef(newSignal(kit, tier)),
+    [, paint] = useState(0),
+    reported = useRef(false);
+  const a = state.current,
+    e = signalEnvironment(a, tier),
+    required = 2 + tier * 2;
   useFrames((dt) => {
-    if (a.done || suspended) return;
-    a.t += dt;
-    a.energy = Math.min(
-      4,
-      Math.max(
-        0,
-        a.energy +
-          (((a.panels && !dark ? 60 : 0) - (a.tx ? 28 : 8)) * dt * 4) / 3600,
-      ),
-    );
-    if (a.tx && a.energy > 0 && aligned)
-      a.signal = Math.min(required, a.signal + dt * (tier === 2 ? 0.25 : 0.35));
-    if (a.energy === 0) a.tx = false;
+    if (suspended || guide || a.status !== "active") return;
+    const advanced = signalStep(a, kit, tier, dt);
     paint((n) => n + 1);
+    if (advanced.status === "failed" && !reported.current) {
+      reported.current = true;
+      onDone({
+        success: false,
+        score: 0,
+        reason: a.reason,
+        stats: [
+          {
+            label: "Message received",
+            value: `${Math.round((a.signal / required) * 100)}%`,
+          },
+          { label: "Battery remaining", value: `${a.energy.toFixed(3)} Wh` },
+          {
+            label: "Elapsed contact window",
+            value: `${a.t.toFixed(1)} / ${signalDuration(tier)} s`,
+          },
+        ],
+      });
+    }
   });
   return (
     <div className="career-challenge">
@@ -80,7 +93,7 @@ export function SignalChallenge({
           <span>🛰</span>
           <i />
         </div>
-        {a.tx && aligned && (
+        {a.tx && e.aligned && (
           <div className="signal-waves">
             <i />
             <i />
@@ -88,7 +101,7 @@ export function SignalChallenge({
           </div>
         )}
         <span className="challenge-sky-label">
-          YOUR SATELLITE · {dark ? "IN SHADOW" : "SUNLIGHT"} ·{" "}
+          YOUR SATELLITE · {e.dark ? "IN SHADOW" : "SUNLIGHT"} ·{" "}
           {tier === 0
             ? "FIRST CONTACT"
             : tier === 1
@@ -97,55 +110,87 @@ export function SignalChallenge({
         </span>
       </div>
       <div className="career-controls">
-        <span className="eyebrow">SATELLITE ASSIGNMENT {tier + 1} / 3</span>
+        <div className="challenge-help">
+          <span className="eyebrow">SATELLITE ASSIGNMENT {tier + 1} / 3</span>
+          <button className="text-button" onClick={() => setGuide(true)}>
+            ⓘ Walkthrough
+          </button>
+        </div>
         <h2>
           {tier === 0
-            ? "Let Earth know you made it."
+            ? "Bring your satellite online."
             : tier === 1
               ? "Point before you transmit."
-              : "Bring a struggling satellite back."}
+              : "Rescue the low battery."}
         </h2>
         <p>
-          {tier === 0
-            ? "Your satellite arrived safely. Unfold its solar wings, then use the radio to send a test message home."
-            : tier === 1
-              ? "The antenna must point toward Earth to connect. Deploy the wings, line up the radio, and transmit a larger packet."
-              : "Your battery is almost empty and the antenna is drifting. Keep the antenna aligned; pause sending if you need to recover energy in sunlight."}
+          Deploy power, establish a radio link, and return the complete test
+          message before the contact window closes. Your selected hardware
+          determines available power, battery reserve and radio speed.
+        </p>
+        <div className="attempt-clock" data-guide="signal-time">
+          <span>CONTACT WINDOW</span>
+          <b className={signalDuration(tier) - a.t < 12 ? "danger" : ""}>
+            {Math.max(0, Math.ceil(signalDuration(tier) - a.t))}s
+          </b>
+          <small>
+            {guide
+              ? "Paused for walkthrough"
+              : "Battery depletion or a missed deadline fails the assignment."}
+          </small>
+        </div>
+        <div className="career-meter" data-guide="signal-energy">
+          <span>
+            BATTERY{" "}
+            <b>
+              {a.energy.toFixed(3)} / {kit.battery} Wh
+            </b>
+          </span>
+          <i>
+            <em style={{ width: `${(a.energy / kit.battery) * 100}%` }} />
+          </i>
+        </div>
+        <p
+          className={
+            "signal-power " +
+            (a.tx && (!a.panels || kit.radioW + 8 > kit.solar) ? "danger" : "")
+          }
+        >
+          {a.panels && !e.dark ? kit.solar : 0} W generation ·{" "}
+          {8 + (a.tx ? kit.radioW : 0)} W consumption{" "}
+          {a.tx && !a.panels
+            ? "— radio is draining the undeployed satellite’s battery"
+            : ""}
         </p>
         <div className="goal-checks">
           <span className={a.panels ? "met" : ""}>
             {a.panels ? "✓" : "○"} Solar wings deployed
           </span>
           {tier > 0 && (
-            <span className={aligned || a.signal >= required ? "met" : ""}>
-              {aligned || a.signal >= required ? "✓" : "○"} Antenna aligned
+            <span className={e.aligned || a.signal >= required ? "met" : ""}>
+              {e.aligned || a.signal >= required ? "✓" : "○"} Antenna aligned
               while transmitting
             </span>
           )}
-          {tier === 2 && (
-            <span className={a.energy >= 0.1 ? "met" : ""}>
-              {a.energy >= 0.1 ? "✓" : "○"} Battery recovered above 0.1 Wh
-            </span>
-          )}
           <span className={a.signal >= required ? "met" : ""}>
-            {a.signal >= required ? "✓" : "○"} {required} MiB signal received on
-            Earth
+            {a.signal >= required ? "✓" : "○"} {required} MiB received on Earth
           </span>
         </div>
         <button
           className="secondary"
-          disabled={a.panels}
+          data-guide="signal-panels"
+          disabled={a.panels || a.status !== "active"}
           onClick={() => {
             a.panels = true;
             paint((n) => n + 1);
           }}
         >
-          <Sun size={17} />{" "}
+          <Sun size={17} />
           {a.panels ? "Solar wings open" : "Deploy solar wings"}
         </button>
         {tier > 0 && (
-          <label className="throttle-control">
-            ANTENNA AIM · TARGET {target.toFixed(0)}° <b>{a.aim}°</b>
+          <label className="throttle-control" data-guide="signal-aim">
+            ANTENNA AIM · TARGET {e.target.toFixed(0)}° <b>{a.aim}°</b>
             <input
               aria-label="Antenna aim"
               type="range"
@@ -158,15 +203,16 @@ export function SignalChallenge({
               }}
             />
             <small>
-              {aligned
-                ? "Connected. Keep this alignment."
-                : "Move the slider near the target angle to connect."}
+              {e.aligned
+                ? "Link aligned."
+                : "Off-target transmission consumes power without returning data."}
             </small>
           </label>
         )}
         <button
           className="primary"
-          disabled={!a.panels}
+          data-guide="signal-radio"
+          disabled={a.status !== "active"}
           onClick={() => {
             a.tx = !a.tx;
             paint((n) => n + 1);
@@ -183,30 +229,26 @@ export function SignalChallenge({
             <em style={{ width: `${(a.signal / required) * 100}%` }} />
           </i>
         </div>
-        <p className="career-micro">
-          Battery {a.energy.toFixed(2)} / 4 Wh ·{" "}
-          {dark
-            ? "No solar power in shadow"
-            : "Panels can recharge in sunlight"}{" "}
-          · Training time accelerated 4×
-        </p>
         <button
           className="primary"
-          disabled={
-            !a.panels || a.signal < required || (tier === 2 && a.energy < 0.1)
-          }
+          disabled={a.status !== "ready"}
           onClick={() => {
-            a.done = true;
+            if (reported.current) return;
+            reported.current = true;
             onDone({
               success: true,
-              score: Math.min(100, Math.round(80 + a.energy * 5)),
+              score: signalScore(a, kit, tier),
               reason:
-                "Your satellite is powered and talking to Earth. You earned the next assignment.",
+                "Your chosen spacecraft returned its message before the deadline and kept power. The next assignment is earned.",
               stats: [
-                { label: "Signal delivered", value: "100%" },
+                { label: "Message delivered", value: "100%" },
                 {
-                  label: "Battery remaining",
-                  value: `${a.energy.toFixed(2)} Wh`,
+                  label: "Battery reserve",
+                  value: `${Math.round((a.energy / kit.battery) * 100)}%`,
+                },
+                {
+                  label: "Contact time used",
+                  value: `${a.t.toFixed(1)} / ${signalDuration(tier)} s`,
                 },
               ],
             });
@@ -214,7 +256,53 @@ export function SignalChallenge({
         >
           Complete satellite assignment <ArrowRight size={17} />
         </button>
+        <p className="career-micro">
+          Fictional commissioning test · power integrates W × seconds / 3600
+          into Wh · timers pause while walkthrough tips are open
+        </p>
       </div>
+      {guide && (
+        <Coach
+          steps={[
+            {
+              title: "This attempt can fail.",
+              body: `Return the full message within ${signalDuration(tier)} seconds. If the battery reaches zero or you miss the window, retry or redesign. The clock is paused while you read.`,
+              target: '[data-guide="signal-time"]',
+            },
+            {
+              title: "Your battery is a limited reserve.",
+              body: `You chose a ${kit.battery} Wh battery and ${kit.solar} W panels. The computer always draws 8 W. Turning on the radio adds ${kit.radioW} W. Watch generation versus consumption.`,
+              target: '[data-guide="signal-energy"]',
+            },
+            {
+              title: "Power first is a sensible strategy.",
+              body: "Open the solar wings to generate electricity in sunlight. Transmitting while they are closed is allowed, but can exhaust the battery before the message finishes.",
+              target: '[data-guide="signal-panels"]',
+            },
+            ...(tier > 0
+              ? [
+                  {
+                    title: "Pointing matters.",
+                    body:
+                      tier === 2
+                        ? "The target drifts. Track the indicated angle while protecting your battery in shadow. Poor alignment wastes radio power."
+                        : "Move the antenna near the target angle before transmitting. Off-target data never reaches Earth.",
+                    target: '[data-guide="signal-aim"]',
+                  },
+                ]
+              : []),
+            {
+              title: "Now make your own attempt.",
+              body: "Transmit only when your power and pointing plan can support it. Pausing the radio to recharge is a valid decision. For a higher rating, finish promptly with more battery reserve.",
+              target: '[data-guide="signal-radio"]',
+            },
+          ]}
+          onClose={() => {
+            markSeen(key);
+            setGuide(false);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -224,16 +312,20 @@ export function OrbitChallenge({
   onDone,
   tier = 0,
   suspended = false,
+  kit: equipment,
 }: {
   world: World;
   load: number;
+  kit?: FlightKit;
   onDone: (r: Result) => void;
   tier?: number;
   suspended?: boolean;
 }) {
+  const guideKey = `orbit-v4-${world}-${tier}`;
+  const [guide, setGuide] = useState(() => unseen(guideKey));
   const state = useRef({
       ...newOrbit(load),
-      energy: orbitKit(load, tier).battery * (0.7 - tier * 0.06),
+      energy: orbitKit(load, tier, equipment).battery * (0.7 - tier * 0.06),
     }),
     [, paint] = useState(0),
     [paused, setPaused] = useState(false),
@@ -241,7 +333,7 @@ export function OrbitChallenge({
     done = useRef(false),
     lastPaint = useRef(0);
   const s = state.current,
-    l = orbitKit(load, tier),
+    l = orbitKit(load, tier, equipment),
     e = orbitEnvironment(s, world),
     goal = orbitGoal(world, tier),
     b = bodies[world];
@@ -276,8 +368,8 @@ export function OrbitChallenge({
     });
   }
   useFrames((dt) => {
-    if (paused || suspended || done.current) return;
-    orbitStep(s, world, load, dt * speed, tier);
+    if (paused || suspended || guide || done.current) return;
+    orbitStep(s, world, load, dt * speed, tier, equipment);
     lastPaint.current += dt;
     if (lastPaint.current > 0.08) {
       paint((n) => n + 1);
@@ -290,7 +382,7 @@ export function OrbitChallenge({
     s.mode = "charge";
     let leaving = e.target;
     for (let t = 0; t < orbitPeriod(world) && !s.ended; t += 10) {
-      orbitStep(s, world, load, 10, tier);
+      orbitStep(s, world, load, 10, tier, equipment);
       const current = orbitEnvironment(s, world);
       if (leaving && !current.target) leaving = false;
       if (!leaving && current.target) break;
@@ -427,6 +519,9 @@ export function OrbitChallenge({
         </p>
       </div>
       <div className="career-controls">
+        <button className="text-button" onClick={() => setGuide(true)}>
+          ⓘ Walkthrough
+        </button>
         <span className="eyebrow">
           {world === "earth"
             ? "EARTH OBSERVER"
@@ -455,7 +550,7 @@ export function OrbitChallenge({
             </span>
           ))}
         </div>
-        <div className="career-meters">
+        <div className="career-meters" data-guide="orbit-resources">
           <div className="career-meter">
             <span>
               BATTERY{" "}
@@ -490,7 +585,7 @@ export function OrbitChallenge({
           </span>
           <span>{e.eclipse ? "◐ ECLIPSE" : "☀ SUNLIGHT"}</span>
         </div>
-        <div className="career-mode-buttons">
+        <div className="career-mode-buttons" data-guide="orbit-commands">
           {(
             [
               { mode: "observe", label: "Observe", icon: Camera },
@@ -524,7 +619,7 @@ export function OrbitChallenge({
             {s.seen.length} captured · {s.delivered.length} received
           </span>
         </div>
-        <div className="career-time">
+        <div className="career-time" data-guide="orbit-time">
           <button onClick={() => setPaused(!paused)}>
             {paused ? <Play size={14} /> : <Pause size={14} />}{" "}
             {paused ? "Resume" : "Pause"}
@@ -549,12 +644,41 @@ export function OrbitChallenge({
         )}
         <button
           className="primary"
-          disabled={!orbitPassed(s, world, load, tier)}
+          disabled={!orbitPassed(s, world, load, tier, equipment)}
           onClick={() => finish(true)}
         >
           Complete orbital mission <ArrowRight size={17} />
         </button>
       </div>
+      {guide && (
+        <Coach
+          steps={[
+            {
+              title: "Plan the whole observation cycle.",
+              body: `Return ${goal} different areas, meet the battery reserve, and avoid missing the mission deadline. Pictures still onboard do not count.`,
+            },
+            {
+              title: "Your hardware sets the limits.",
+              body: "Battery, solar generation, radio rate and recorder capacity come from the spacecraft you built. Too many images or a long eclipse can exhaust a poor design.",
+              target: '[data-guide="orbit-resources"]',
+            },
+            {
+              title: "Choose one task at a time.",
+              body: "Observe collects when a target is visible. Send home transmits only during ground contact. Charge saves power and points the panels toward sunlight.",
+              target: '[data-guide="orbit-commands"]',
+            },
+            {
+              title: "Watch time and contact windows.",
+              body: "Coasting consumes mission time and power normally. Miss enough windows and the mission ends. Try a design, inspect its result, then improve it.",
+              target: '[data-guide="orbit-time"]',
+            },
+          ]}
+          onClose={() => {
+            markSeen(guideKey);
+            setGuide(false);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -564,26 +688,39 @@ export function ManeuverChallenge({
   onDone,
   tier = 0,
   suspended = false,
+  kit: equipment,
 }: {
   kind: "dock" | "land";
+  kit?: FlightKit;
   world: World;
   onDone: (r: Result) => void;
   tier?: number;
   suspended?: boolean;
 }) {
+  const guideKey = `maneuver-v4-${kind}-${world}-${tier}`;
+  const [guide, setGuide] = useState(() => unseen(guideKey));
   const state = useRef({
       ...newMotion(kind, world, tier),
-      assist: kind === "land" && world === "moon",
+      ...(equipment
+        ? {
+            fuel:
+              kind === "land"
+                ? equipment.surfaceFuel
+                : newMotion(kind, world, tier).fuel * equipment.fuelScale,
+            dryMass: equipment.dryMass,
+          }
+        : {}),
+      assist: false,
     }),
     [, paint] = useState(0),
     [paused, setPaused] = useState(false),
     keys = useRef({ x: 0, y: 0 }),
     ended = useRef(false),
-    assisted = useRef(kind === "land" && world === "moon"),
+    assisted = useRef(false),
     timer = useRef(0);
   const s = state.current;
   useFrames((dt) => {
-    if (paused || suspended || ended.current) return;
+    if (paused || suspended || guide || ended.current) return;
     timer.current += dt;
     assisted.current ||= s.assist;
     motionStep(
@@ -602,7 +739,7 @@ export function ManeuverChallenge({
         success,
         score: success
           ? Math.min(
-              100,
+              assisted.current ? 79 : 100,
               Math.round(
                 (assisted.current ? 66 : 82) +
                   s.fuel * 0.35 -
@@ -638,7 +775,7 @@ export function ManeuverChallenge({
   });
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (suspended) return;
+      if (suspended || guide) return;
       if (
         ["INPUT", "SELECT", "TEXTAREA", "BUTTON"].includes(
           (e.target as HTMLElement).tagName,
@@ -680,7 +817,7 @@ export function ManeuverChallenge({
       window.removeEventListener("blur", up);
       keys.current = { x: 0, y: 0 };
     };
-  }, [suspended]);
+  }, [suspended, guide]);
   function thrust(x: number, y: number) {
     s.assist = false;
     keys.current = { x, y };
@@ -809,6 +946,9 @@ export function ManeuverChallenge({
         </svg>
       </div>
       <div className="career-controls">
+        <button className="text-button" onClick={() => setGuide(true)}>
+          ⓘ Walkthrough
+        </button>
         <span className="eyebrow">
           {kind === "dock"
             ? "BUILD YOUR FIRST SPACE STATION"
@@ -820,7 +960,7 @@ export function ManeuverChallenge({
             ? "Line up with the green corridor, then approach gently. Thrusters change your speed; releasing them does not stop your motion. Push the opposite way to brake."
             : "Use engine thrust to slow your fall. Tilt to steer, then cancel sideways motion before landing. The green strip is your target."}
         </p>
-        <div className="maneuver-stats">
+        <div className="maneuver-stats" data-guide="maneuver-state">
           <div>
             <span>{kind === "dock" ? "DISTANCE" : "HEIGHT"}</span>
             <b>{Math.max(0, s.y).toFixed(0)} m</b>
@@ -857,7 +997,7 @@ export function ManeuverChallenge({
           </div>
         </label>
         {kind === "dock" ? (
-          <div className="dock-controls">
+          <div className="dock-controls" data-guide="maneuver-controls">
             {[
               { x: -1, y: 0, label: "← Nudge left" },
               { x: 1, y: 0, label: "Nudge right →" },
@@ -886,7 +1026,7 @@ export function ManeuverChallenge({
           </div>
         ) : (
           <>
-            <label className="throttle-control">
+            <label className="throttle-control" data-guide="maneuver-controls">
               LANDING ENGINE <b>{Math.round(s.throttle * 100)}%</b>
               <input
                 aria-label="Landing engine throttle"
@@ -965,6 +1105,46 @@ export function ManeuverChallenge({
           . Grades include fuel and contact speed.
         </p>
       </div>
+      {guide && (
+        <Coach
+          steps={[
+            {
+              title:
+                kind === "dock"
+                  ? "Docking is a speed problem."
+                  : "Landing is a braking problem.",
+              body:
+                kind === "dock"
+                  ? "Your module starts moving toward the station. You must line it up and slow it before contact. If you miss the port or hit too fast, the assignment fails."
+                  : "Gravity is already pulling the lander down. Use the engine to slow the fall. Too much speed, sideways drift, an excessive tilt or missing the pad causes a crash.",
+            },
+            {
+              title: "Read the motion before acting.",
+              body: "Speed matters as much as position. Fuel is limited. Later assignments reduce fuel and tighten contact tolerances.",
+              target: '[data-guide="maneuver-state"]',
+            },
+            {
+              title:
+                kind === "dock"
+                  ? "Short bursts, then counter-thrust."
+                  : "Control thrust and cancel sideways motion.",
+              body:
+                kind === "dock"
+                  ? "A/D moves sideways; W/S approaches and brakes. Letting go does not stop the craft. Push in the opposite direction to cancel drift."
+                  : "W/S adjusts engine throttle; A/D tilts the lander. Tilt changes sideways acceleration. Straighten before touchdown, and start braking before you are close to the ground.",
+              target: '[data-guide="maneuver-controls"]',
+            },
+            {
+              title: "Take control when you are ready.",
+              body: "The walkthrough pauses time but does not operate the craft. Optional assistance is available if you need a demonstration; using it caps the mastery rating. Retry failures or redesign your fuel reserve.",
+            },
+          ]}
+          onClose={() => {
+            markSeen(guideKey);
+            setGuide(false);
+          }}
+        />
+      )}
     </div>
   );
 }

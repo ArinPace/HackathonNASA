@@ -2,7 +2,24 @@
  * Two point-mass stages, vertical gravity, simple drag and pitch control.
  * Reaching 100km is NOT orbit: the contracted service handles insertion/transfer.
  */
+export type RocketConfig = {
+  firstFuel: number;
+  upperFuel: number;
+  firstThrust: number;
+  upperThrust: number;
+  firstDry: number;
+  upperDry: number;
+};
+export const stockRocket: RocketConfig = {
+  firstFuel: 300000,
+  upperFuel: 90000,
+  firstThrust: 8e6,
+  upperThrust: 1.3e6,
+  firstDry: 30000,
+  upperDry: 10000,
+};
 export type LaunchState = {
+  config: RocketConfig;
   time: number;
   altitude: number;
   velocity: number;
@@ -17,12 +34,14 @@ export type LaunchState = {
   assist: boolean;
   stagedAt: number | null;
 };
-export function newLaunch(): LaunchState {
+export function newLaunch(config: Partial<RocketConfig> = {}): LaunchState {
+  const cfg = { ...stockRocket, ...config };
   return {
+    config: cfg,
     time: 0,
     altitude: 0,
     velocity: 0,
-    fuel: [300000, 90000],
+    fuel: [cfg.firstFuel, cfg.upperFuel],
     stage: 1,
     pitch: 0,
     throttle: 0.86,
@@ -35,7 +54,12 @@ export function newLaunch(): LaunchState {
   };
 }
 export function separate(s: LaunchState) {
-  if (s.status !== "flying" || s.stage !== 1 || s.fuel[0] > 15000) return false;
+  if (
+    s.status !== "flying" ||
+    s.stage !== 1 ||
+    s.fuel[0] > s.config.firstFuel * 0.05
+  )
+    return false;
   s.stage = 2;
   s.stagedAt = s.time;
   return true;
@@ -63,13 +87,16 @@ export function launchStep(s: LaunchState, realDt: number, payloadKg: number) {
       s.throttle = 0.86;
     }
     const idx = s.stage - 1,
-      flow = s.stage === 1 ? 3600 : 360,
-      thrust = s.stage === 1 ? 8e6 : 1.3e6;
+      thrust = s.stage === 1 ? s.config.firstThrust : s.config.upperThrust,
+      flow = s.stage === 1 ? 3600 * (thrust / 8e6) : 360 * (thrust / 1.3e6);
     const burn = Math.min(s.fuel[idx], flow * s.throttle * dt);
     s.fuel[idx] -= burn;
     const firing = burn / (flow * dt);
     const mass =
-      payloadKg + 10000 + s.fuel[1] + (s.stage === 1 ? 30000 + s.fuel[0] : 0);
+      payloadKg +
+      s.config.upperDry +
+      s.fuel[1] +
+      (s.stage === 1 ? s.config.firstDry + s.fuel[0] : 0);
     const gravity = 9.80665 * (6371000 / (6371000 + s.altitude)) ** 2;
     const density = Math.exp(-s.altitude / 8500);
     const drag =

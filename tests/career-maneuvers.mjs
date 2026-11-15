@@ -1,5 +1,6 @@
 import { chromium, expect } from "@playwright/test";
 import assert from "node:assert/strict";
+import { deployDesign, dismissCoach } from "./launch-flow.mjs";
 const browser = await chromium.launch({
   headless: true,
   executablePath:
@@ -42,9 +43,10 @@ await docking.page
   .getByRole("region", { name: "Career mission chapters" })
   .getByRole("button", { name: /Lab Delivery/ })
   .click();
-await docking.page
-  .getByRole("button", { name: /Use launch certificate/ })
-  .click();
+await deployDesign(docking.page);
+await expect(
+  docking.page.getByRole("checkbox", { name: /Docking assistance/ }),
+).not.toBeChecked();
 await docking.page
   .getByRole("checkbox", { name: /Docking assistance/ })
   .check();
@@ -64,14 +66,16 @@ await lunar.page
   .getByRole("region", { name: "Career mission chapters" })
   .getByRole("button", { name: /First Touchdown/ })
   .click();
-await lunar.page
-  .getByRole("button", { name: /Use launch certificate/ })
-  .click();
+await deployDesign(lunar.page);
+await expect(
+  lunar.page.getByRole("checkbox", { name: /Landing assistance/ }),
+).not.toBeChecked();
+await lunar.page.getByRole("checkbox", { name: /Landing assistance/ }).check();
 await lunar.page.screenshot({
   path: "/private/tmp/ols-lunar-landing.png",
   fullPage: true,
 });
-await lunar.page.clock.runFor(65000);
+await lunar.page.clock.runFor(130000);
 await expect(
   lunar.page.getByRole("heading", { name: "Assignment complete." }),
 ).toBeVisible();
@@ -83,7 +87,7 @@ await mars.page
   .getByRole("region", { name: "Career mission chapters" })
   .getByRole("button", { name: /Red Recon/ })
   .click();
-await mars.page.getByRole("button", { name: /Use launch certificate/ }).click();
+await deployDesign(mars.page);
 await mars.page.getByRole("button", { name: "Observe", exact: true }).click();
 await mars.page.clock.runFor(17000);
 await mars.page.getByRole("button", { name: "Send home", exact: true }).click();
@@ -94,8 +98,9 @@ await expect(
 await mars.page
   .getByRole("button", { name: "Complete orbital mission" })
   .click();
+await dismissCoach(mars.page);
 await mars.page.getByRole("checkbox", { name: /Landing assistance/ }).check();
-await mars.page.clock.runFor(85000);
+await mars.page.clock.runFor(130000);
 await expect(
   mars.page.getByRole("heading", { name: "Assignment complete." }),
 ).toBeVisible();

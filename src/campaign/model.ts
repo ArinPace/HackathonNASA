@@ -309,8 +309,19 @@ export function newOrbit(load = 0): OrbitState {
 export function orbitGoal(world: World, tier = 0) {
   return (world === "earth" ? 2 : world === "moon" ? 3 : 4) + tier;
 }
-export function orbitKit(load: number, tier = 0) {
-  const l = loads[load];
+export type OrbitEquipment = {
+  name: string;
+  battery: number;
+  solar: number;
+  radio: number;
+  size: number;
+  load: number;
+  storage: number;
+  quality: number;
+  radioW?: number;
+};
+export function orbitKit(load: number, tier = 0, equipment?: OrbitEquipment) {
+  const l: OrbitEquipment = equipment ?? loads[load];
   return {
     ...l,
     battery: l.battery * (1 - tier * 0.08),
@@ -323,8 +334,9 @@ export function orbitStep(
   load: number,
   seconds: number,
   tier = 0,
+  equipment?: OrbitEquipment,
 ) {
-  const l = orbitKit(load, tier),
+  const l = orbitKit(load, tier, equipment),
     solarScale = world === "mars" ? 0.5 - tier * 0.05 : 1,
     radioScale = world === "mars" ? 0.22 - tier * 0.04 : 1;
   for (let left = seconds; left > 1e-8 && !s.ended;) {
@@ -335,7 +347,11 @@ export function orbitStep(
         ? 0
         : l.solar * solarScale * (s.mode === "charge" ? 1 : 0.35);
     const demand =
-      s.mode === "observe" ? l.load : s.mode === "transmit" ? 30 : 10;
+      s.mode === "observe"
+        ? l.load
+        : s.mode === "transmit"
+          ? (l.radioW ?? 22) + 8
+          : 10;
     s.energy = Math.max(
       0,
       Math.min(l.battery, s.energy + ((generation - demand) * dt) / 3600),
@@ -394,15 +410,17 @@ export function orbitPassed(
   world: World,
   load: number,
   tier = 0,
+  equipment?: OrbitEquipment,
 ) {
   return (
     s.delivered.length >= orbitGoal(world, tier) &&
     (world !== "earth" || s.eclipseTime >= 180 * (tier + 1)) &&
     (world === "earth" || (s.generated > 0 && s.sent >= s.generated * 0.85)) &&
-    s.energy >= orbitKit(load, tier).battery * (0.1 + tier * 0.05)
+    s.energy >= orbitKit(load, tier, equipment).battery * (0.1 + tier * 0.05)
   );
 }
 export type Motion = {
+  dryMass?: number;
   t: number;
   x: number;
   y: number;
@@ -490,7 +508,7 @@ export function motionStep(
     } else {
       const gravity = bodies[world].gravity,
         maxThrust = world === "mars" ? 1200 : 600,
-        mass = 85 + s.fuel;
+        mass = (s.dryMass ?? 85) + s.fuel;
       if (s.assist) {
         const targetV = -Math.min(
           world === "mars" ? 15 : 11,

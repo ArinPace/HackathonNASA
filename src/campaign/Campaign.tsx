@@ -32,6 +32,8 @@ import {
 import { LaunchScreen } from "../LaunchScreen";
 import { MissionIntro } from "../MissionIntro";
 import { balancedDesign } from "../sim/mission";
+import { Workshop } from "./MissionWorkshop";
+import { starterBuild, deriveBuild, type Build } from "./workshop";
 import "./career.css";
 const KEY = "ols-career-v1";
 function read() {
@@ -81,7 +83,7 @@ function goals(index: number) {
 export function Campaign({ onSandbox }: { onSandbox: () => void }) {
   const [progress, setProgress] = useState<Progress>(read),
     [phase, setPhase] = useState<
-      "map" | "brief" | "launch" | "play" | "surface" | "result"
+      "map" | "brief" | "workshop" | "launch" | "play" | "surface" | "result"
     >("map"),
     [selected, setSelected] = useState(0),
     [load, setLoad] = useState(0),
@@ -90,6 +92,8 @@ export function Campaign({ onSandbox }: { onSandbox: () => void }) {
     [intro, setIntro] = useState(false),
     [muted, setMuted] = useState(true),
     [attempt, setAttempt] = useState(0);
+  const [build, setBuild] = useState<Build>(() => starterBuild(0));
+  const kit = deriveBuild(build, selected);
   const orbitalResult = useState<{ current: Result | null }>({
     current: null,
   })[0];
@@ -113,14 +117,15 @@ export function Campaign({ onSandbox }: { onSandbox: () => void }) {
   function choose(i: number) {
     if (!unlocked(progress, i)) return;
     setSelected(i);
+    setBuild(starterBuild(i));
     setLoad(i >= 9 ? 2 : 0);
     setPhase("brief");
     setResult(null);
     orbitalResult.current = null;
   }
-  function start(skip: boolean) {
+  function start() {
     setAttempt((n) => n + 1);
-    setPhase(skip ? "play" : "launch");
+    setPhase("workshop");
   }
   function finish(r: Result) {
     if (a.kind === "mars" && phase === "play" && r.success) {
@@ -404,9 +409,9 @@ export function Campaign({ onSandbox }: { onSandbox: () => void }) {
                   <p>
                     {a.kind === "signal"
                       ? [
-                          "First: power and a simple radio message.",
-                          "Next: you must aim the antenna before the message can reach Earth.",
-                          "Now: follow a moving antenna target while protecting a nearly empty battery.",
+                          "Return a test message within 60 seconds. Transmitting without solar power can exhaust the battery and fail the mission.",
+                          "Return a longer message within 52 seconds. You must aim the antenna; off-target transmission wastes power.",
+                          "Return the longest message within 44 seconds. Precharge a low battery, track a moving antenna target and operate through shadow.",
                         ][a.tier]
                       : a.kind === "dock"
                         ? `Assignment ${a.tier + 1}: less maneuvering fuel, a ${((2 - a.tier * 0.4) * 2).toFixed(1)} m-wide alignment zone, and a ${(0.8 - a.tier * 0.15).toFixed(2)} m/s contact limit.`
@@ -415,30 +420,11 @@ export function Campaign({ onSandbox }: { onSandbox: () => void }) {
                           : `Assignment ${a.tier + 1}: ${orbitGoal(a.world, a.tier)} survey areas, ${10 + a.tier * 5}% battery reserve and smaller storage. ${a.kind === "mars" ? "A powered landing follows the orbital survey." : ""}`}
                   </p>
                 </div>
-                {(a.kind === "orbit" || a.kind === "mars") && (
-                  <div className="career-kit-select">
-                    <span className="eyebrow">CHOOSE YOUR MISSION KIT</span>
-                    {loads.slice(0, selected >= 9 ? 3 : 2).map((kit, i) => (
-                      <button
-                        className={i === load ? "selected" : ""}
-                        key={kit.name}
-                        onClick={() => setLoad(i)}
-                      >
-                        <b>{kit.name}</b>
-                        <small>
-                          {Math.round(orbitKit(i, a.tier).battery)} Wh ·{" "}
-                          {Math.round(orbitKit(i, a.tier).storage)} MiB ·{" "}
-                          {kit.radio} MiB/s base link
-                        </small>
-                        {i === load && <Check size={15} />}
-                      </button>
-                    ))}
-                    <small>
-                      Fictional training kits; later worlds alter available
-                      sunlight and link rate.
-                    </small>
-                  </div>
-                )}
+                <p className="career-tip">
+                  Next: configure spacecraft equipment and rocket stages in the
+                  mission workshop. Budget, mass, power and radio trade-offs
+                  affect the actual attempt.
+                </p>
                 <div className="assignment-reward">
                   <Star size={17} />
                   <span>
@@ -448,17 +434,10 @@ export function Campaign({ onSandbox }: { onSandbox: () => void }) {
                       : "Next assignment unlocks on success"}
                   </span>
                 </div>
-                <button className="primary" onClick={() => start(false)}>
-                  {progress.launchCertified
-                    ? "Replay rocket launch"
-                    : "Start rocket launch"}
+                <button className="primary" onClick={start}>
+                  Build spacecraft & rocket
                   <ArrowRight size={17} />
                 </button>
-                {progress.launchCertified && (
-                  <button className="secondary" onClick={() => start(true)}>
-                    Use launch certificate → start assignment
-                  </button>
-                )}
                 <p className="career-micro">
                   Launch once to earn a reusable launch certificate. Later
                   assignments can skip the ride so you spend time mastering new
@@ -466,10 +445,27 @@ export function Campaign({ onSandbox }: { onSandbox: () => void }) {
                 </p>
               </div>
             </section>
+          ) : phase === "workshop" ? (
+            <Workshop
+              index={selected}
+              build={build}
+              onChange={setBuild}
+              certificate={progress.launchCertified}
+              onCommit={(skip) => {
+                if (kit.blocks.length) return;
+                setPhase(skip ? "play" : "launch");
+              }}
+            />
           ) : phase === "launch" ? (
             <LaunchScreen
-              design={balancedDesign}
+              design={{
+                ...balancedDesign,
+                launcher: build.booster === "heavy" ? "heavy" : "light",
+              }}
               destination={a.world}
+              payloadKg={kit.mass}
+              rocketConfig={kit.rocket}
+              assistInitially={false}
               reduced={
                 window.matchMedia("(prefers-reduced-motion: reduce)").matches
               }
@@ -568,6 +564,15 @@ export function Campaign({ onSandbox }: { onSandbox: () => void }) {
                     : "Retry from this checkpoint"}{" "}
                   <RotateCcw size={14} />
                 </button>
+                <button
+                  className="secondary"
+                  onClick={() => {
+                    setResult(null);
+                    setPhase("workshop");
+                  }}
+                >
+                  Redesign spacecraft & rocket
+                </button>
                 <button className="text-button" onClick={() => setPhase("map")}>
                   Return to mission map
                 </button>
@@ -578,12 +583,14 @@ export function Campaign({ onSandbox }: { onSandbox: () => void }) {
               {a.kind === "signal" ? (
                 <SignalChallenge
                   suspended={intro}
+                  kit={kit}
                   tier={a.tier}
                   onDone={finish}
                 />
               ) : a.kind === "dock" ? (
                 <ManeuverChallenge
                   suspended={intro}
+                  kit={kit}
                   tier={a.tier}
                   kind="dock"
                   world="earth"
@@ -592,6 +599,7 @@ export function Campaign({ onSandbox }: { onSandbox: () => void }) {
               ) : a.kind === "land" || phase === "surface" ? (
                 <ManeuverChallenge
                   suspended={intro}
+                  kit={kit}
                   tier={a.tier}
                   kind="land"
                   world={a.world}
@@ -600,6 +608,7 @@ export function Campaign({ onSandbox }: { onSandbox: () => void }) {
               ) : (
                 <OrbitChallenge
                   suspended={intro}
+                  kit={kit}
                   tier={a.tier}
                   world={a.world}
                   load={load}

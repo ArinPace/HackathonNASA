@@ -1,10 +1,40 @@
 import { expect } from "@playwright/test";
+export async function dismissCoach(page) {
+  const skip = page.getByRole("button", {
+    name: "Skip walkthrough",
+    exact: true,
+  });
+  if (await skip.isVisible()) await skip.click();
+}
+export async function openWorkshop(page) {
+  await page
+    .getByRole("button", { name: "Build spacecraft & rocket", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Launch this design", exact: true }),
+  ).toBeVisible();
+  await dismissCoach(page);
+}
+export async function deployDesign(page) {
+  await openWorkshop(page);
+  await page
+    .getByRole("button", {
+      name: "Use certificate to deploy this design",
+      exact: true,
+    })
+    .click();
+  await dismissCoach(page);
+}
 export async function flyLaunch(
   page,
   { clock = false, capture = false, career = false } = {},
 ) {
   if (!career)
     await page.getByRole("button", { name: "Go to launchpad" }).click();
+  await expect(
+    page.getByRole("button", { name: "Start countdown" }),
+  ).toBeVisible();
+  await dismissCoach(page);
   await page.getByRole("button", { name: "Start countdown" }).click();
   if (capture) {
     await page.waitForTimeout(5500);

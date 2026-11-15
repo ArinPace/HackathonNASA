@@ -7,10 +7,17 @@ import {
   RotateCcw,
   Volume2,
   VolumeX,
+  HelpCircle,
 } from "lucide-react";
-import { newLaunch, launchStep, separate } from "./sim/launch";
+import {
+  newLaunch,
+  launchStep,
+  separate,
+  type RocketConfig,
+} from "./sim/launch";
 import { LaunchScene } from "./LaunchScene";
 import { vehicle, type Design } from "./sim/mission";
+import { Coach, unseen, markSeen } from "./campaign/Coach";
 export function LaunchScreen({
   design,
   reduced,
@@ -19,6 +26,9 @@ export function LaunchScreen({
   onMute,
   onComplete,
   destination = "moon",
+  rocketConfig,
+  payloadKg,
+  assistInitially = true,
 }: {
   design: Design;
   reduced: boolean;
@@ -27,6 +37,9 @@ export function LaunchScreen({
   onMute: () => void;
   onComplete: () => void;
   destination?: "earth" | "moon" | "mars";
+  rocketConfig?: Partial<RocketConfig>;
+  payloadKg?: number;
+  assistInitially?: boolean;
 }) {
   const destinationName =
     destination === "earth"
@@ -34,7 +47,8 @@ export function LaunchScreen({
       : destination === "mars"
         ? "Mars"
         : "the Moon";
-  const state = useRef(newLaunch()),
+  const [guide, setGuide] = useState(() => unseen("launch-v4"));
+  const state = useRef({ ...newLaunch(rocketConfig), assist: assistInitially }),
     [, render] = useState(0),
     [hold, setHold] = useState(false),
     [travel, setTravel] = useState<number | null>(null),
@@ -51,10 +65,14 @@ export function LaunchScreen({
       id = requestAnimationFrame(frame);
       const dt = last ? Math.min(0.1, (now - last) / 1000) : 0;
       last = now;
-      if (!paused && !hold && travel === null)
-        launchStep(state.current, dt, vehicle(design).mass);
+      if (!paused && !hold && !guide && travel === null)
+        launchStep(state.current, dt, payloadKg ?? vehicle(design).mass);
       if (rumble.current) {
         const firing =
+          !paused &&
+          !hold &&
+          !guide &&
+          travel === null &&
           state.current.status === "flying" &&
           state.current.fuel[state.current.stage - 1] > 0;
         rumble.current.gain.gain.setTargetAtTime(
@@ -70,15 +88,15 @@ export function LaunchScreen({
     }
     id = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(id);
-  }, [paused, hold, travel === null, design]);
+  }, [paused, hold, guide, travel === null, design, payloadKg]);
   useEffect(() => {
-    if (travel === null || paused || hold) return;
+    if (travel === null || paused || hold || guide) return;
     const id = setInterval(
       () => setTravel((p) => (p === null ? null : Math.min(1, p + 0.025))),
       150,
     );
     return () => clearInterval(id);
-  }, [travel === null, paused, hold]);
+  }, [travel === null, paused, hold, guide]);
   useEffect(
     () => () => {
       rumble.current?.osc.stop();
@@ -127,6 +145,7 @@ export function LaunchScreen({
   }
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
+      if (guide || paused) return;
       if (
         ["INPUT", "SELECT", "TEXTAREA"].includes(
           (e.target as HTMLElement).tagName,
@@ -151,9 +170,12 @@ export function LaunchScreen({
     };
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
-  }, []);
+  }, [guide, paused]);
   const s = state.current,
-    stageReady = s.status === "flying" && s.stage === 1 && s.fuel[0] <= 15000;
+    stageReady =
+      s.status === "flying" &&
+      s.stage === 1 &&
+      s.fuel[0] <= s.config.firstFuel * 0.05;
   const subtitle =
     s.status === "ready"
       ? "Your explorer is inside the tip of this rocket. Let’s get it off Earth."
@@ -194,7 +216,9 @@ export function LaunchScreen({
               <span className="launch-phase">
                 {s.status === "flying"
                   ? `T+${Math.floor(s.time)}s · ${s.stage === 1 ? "BOOSTER" : "UPPER ENGINE"}`
-                  : "LUNAR POLAR SCOUT · " + s.status.toUpperCase()}
+                  : destinationName.toUpperCase() +
+                    " · " +
+                    s.status.toUpperCase()}
               </span>
             </div>
             {s.status === "countdown" && (
@@ -288,6 +312,9 @@ export function LaunchScreen({
         )}
       </div>
       <aside className="launch-panel">
+        <button className="text-button" onClick={() => setGuide(true)}>
+          <HelpCircle size={17} /> Walkthrough
+        </button>
         <span className="eyebrow">
           {travel === null ? "YOU ARE LAUNCH DIRECTOR" : "ARRIVAL BRIEFING"}
         </span>
@@ -337,7 +364,10 @@ export function LaunchScreen({
                 </span>
                 <b>
                   {Math.round(
-                    (s.fuel[s.stage - 1] / (s.stage === 1 ? 300000 : 90000)) *
+                    (s.fuel[s.stage - 1] /
+                      (s.stage === 1
+                        ? s.config.firstFuel
+                        : s.config.upperFuel)) *
                       100,
                   )}
                   %
@@ -346,7 +376,7 @@ export function LaunchScreen({
               <div className="bar">
                 <i
                   style={{
-                    width: `${(s.fuel[s.stage - 1] / (s.stage === 1 ? 300000 : 90000)) * 100}%`,
+                    width: `${(s.fuel[s.stage - 1] / (s.stage === 1 ? s.config.firstFuel : s.config.upperFuel)) * 100}%`,
                   }}
                 />
               </div>
@@ -390,7 +420,10 @@ export function LaunchScreen({
               <button
                 className="primary"
                 onClick={() => {
-                  state.current = newLaunch();
+                  state.current = {
+                    ...newLaunch(rocketConfig),
+                    assist: assistInitially,
+                  };
                   setTip("");
                 }}
               >
@@ -493,6 +526,35 @@ export function LaunchScreen({
           </>
         )}
       </aside>
+      {guide && (
+        <Coach
+          steps={[
+            {
+              title: "Your selected rocket is real game hardware.",
+              body: "Booster thrust, propellant quantity, upper-stage engine and spacecraft mass come from the workshop. They affect this ascent.",
+            },
+            {
+              title: "Throttle is engine power.",
+              body: "Too little thrust can leave the rocket on the pad or make it fall. More thrust uses fuel faster. Steering too far from upright wastes vertical lift.",
+              target: ".throttle-control",
+            },
+            {
+              title: "Separate when the booster is nearly empty.",
+              body: "Press Space or Separate booster when it becomes available. In manual flight, the simulation does not wait for you. Ignoring staging or cutting power can lose the rocket.",
+              target: ".launch-fuel",
+            },
+            {
+              title: "Practice is available, not automatic.",
+              body: "Flight assistance can demonstrate a safe climb, but career launches start under your control. Begin the countdown when you are ready. Reaching 100 km is not orbit; the selected service guides insertion and transfer.",
+              target: ".ignite",
+            },
+          ]}
+          onClose={() => {
+            markSeen("launch-v4");
+            setGuide(false);
+          }}
+        />
+      )}
     </section>
   );
 }

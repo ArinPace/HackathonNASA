@@ -1,6 +1,11 @@
 import { chromium, expect } from "@playwright/test";
 import assert from "node:assert/strict";
-import { flyLaunch } from "./launch-flow.mjs";
+import {
+  flyLaunch,
+  dismissCoach,
+  openWorkshop,
+  deployDesign,
+} from "./launch-flow.mjs";
 const browser = await chromium.launch({
   headless: true,
   executablePath:
@@ -26,13 +31,76 @@ assert.equal(
 const level2 = page.getByRole("button", { name: /Relay Duty/ });
 assert.ok(await level2.isDisabled());
 await page.getByRole("button", { name: "Begin level 1" }).click();
-await page.getByRole("button", { name: "Start rocket launch" }).click();
+await openWorkshop(page);
+await page.getByRole("button", { name: "Rocket", exact: true }).click();
+await page
+  .getByRole("combobox", { name: "Build booster", exact: true })
+  .selectOption("heavy");
+await expect(
+  page.getByRole("button", { name: "Launch this design" }),
+).toBeDisabled();
+await expect(page.getByText(/Budget exceeded:/)).toBeVisible();
+await page
+  .getByRole("combobox", { name: "Build booster", exact: true })
+  .selectOption("scout");
+await expect(
+  page.getByRole("button", { name: "Launch this design" }),
+).toBeEnabled();
+await page.screenshot({
+  path: "/private/tmp/ols-rocket-workshop.png",
+  fullPage: true,
+});
+await page
+  .getByRole("button", { name: "Launch this design", exact: true })
+  .click();
+await expect(
+  page.getByRole("checkbox", { name: /Flight assistance/ }),
+).not.toBeChecked();
 await flyLaunch(page, { clock: true, career: true });
+// Reading a popup must neither consume the contact window nor operate controls.
+await expect(
+  page.getByRole("dialog", { name: "Interactive mission walkthrough" }),
+).toBeVisible();
+await page.clock.runFor(80000);
+await expect(page.locator('[data-guide="signal-time"] b')).toHaveText("60s");
+await expect(
+  page.getByRole("button", { name: "Complete satellite assignment" }),
+).toBeDisabled();
+await page.getByRole("button", { name: "Next tip", exact: true }).click();
+await expect(
+  page.getByRole("heading", { name: "Your battery is a limited reserve." }),
+).toBeVisible();
+await page.screenshot({
+  path: "/private/tmp/ols-signal-walkthrough.png",
+  fullPage: true,
+});
+await page.keyboard.press("Tab");
+await expect(
+  page.getByRole("button", { name: "Close walkthrough", exact: true }),
+).toBeFocused();
+await page.keyboard.press("Escape");
+await expect(page.getByRole("dialog")).toHaveCount(0);
+// A genuinely bad operating decision fails the first assignment.
+await page
+  .getByRole("button", { name: "Transmit signal", exact: true })
+  .click();
+await page.clock.runFor(10000);
+await expect(
+  page.getByRole("heading", { name: "One more attempt." }),
+).toBeVisible();
+const failed = await page.evaluate(() =>
+  JSON.parse(localStorage.getItem("ols-career-v1")),
+);
+assert.equal(failed.best["signal-0"], undefined);
+assert.ok(
+  await page.getByRole("button", { name: /Redesign spacecraft/ }).isVisible(),
+);
+await page.getByRole("button", { name: /Retry from this checkpoint/ }).click();
 await page.getByRole("button", { name: "Deploy solar wings" }).click();
 await page
   .getByRole("button", { name: "Transmit signal", exact: true })
   .click();
-await page.clock.runFor(8000);
+await page.clock.runFor(13000);
 await page
   .getByRole("button", { name: "Complete satellite assignment" })
   .click();
@@ -49,13 +117,13 @@ await page.screenshot({
   fullPage: true,
 });
 await page.getByRole("button", { name: /Unlock level 2/ }).click();
-await page.getByRole("button", { name: /Use launch certificate/ }).click();
+await deployDesign(page);
 await page.getByRole("button", { name: "Deploy solar wings" }).click();
 await page.getByRole("slider", { name: "Antenna aim" }).fill("5");
 await page
   .getByRole("button", { name: "Transmit signal", exact: true })
   .click();
-await page.clock.runFor(13000);
+await page.clock.runFor(24000);
 await page
   .getByRole("button", { name: "Complete satellite assignment" })
   .click();
@@ -74,6 +142,6 @@ assert.equal(
 );
 assert.deepEqual(errors, []);
 console.log(
-  "PASS: first launch and 2 real career assignments, 18-map locks, XP, saved progress after reload, launch certificate, antenna aiming, mobile layout, no page errors.",
+  "PASS: real workshop budget blocks, manual launch, walkthrough pauses and Escape, level-1 battery failure without progress, retry to earn XP, 2 career assignments, locks, saves, antenna aiming, mobile layout, no page errors.",
 );
 await browser.close();
